@@ -1,0 +1,35 @@
+# Ignore executables
+*.exe
+
+# Ignore object files
+*.o
+*.obj
+*.so
+*.dll
+*.dylib
+
+# Ignore build directories
+build/
+bin/
+Debug/
+Release/
+x64/
+x86/
+
+# IDE files
+.vs/
+.vscode/
+*.sln
+*.vcxproj*
+.idea/
+*.swp
+*.swo
+
+# CMake build files
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+
+# Backup files
+*~
+*.bak
