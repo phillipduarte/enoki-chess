@@ -2,6 +2,8 @@
 #include <string>
 #include <vector>
 
+#include "./chess.h"
+
 // Second argument is the game mode; 0 -> local, 1 -> vs bot
 // Third argument is the color; 0 -> white, 1 -> black; Only used in vs bot mode
 int main(int argc, char* argv[]) {
@@ -37,5 +39,9 @@ int main(int argc, char* argv[]) {
     if (game_mode == 1) {
         std::cout << "Color: " << (std::stoi(argv[2]) == 0 ? "White" : "Black") << std::endl;
     }
+
+
+
+
     return 0;
 }
