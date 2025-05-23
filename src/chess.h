@@ -77,6 +77,8 @@ private:
   void applyMove(const std::string &move);
 
   void resetBoard();
+
+  void printBitboards() const;
 };
 
 #endif // CHESS_H

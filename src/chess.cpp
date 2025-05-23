@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 #include <sstream>
+#include <bitset>
 
 ChessGame::ChessGame() : whiteTurn(true)
 {
@@ -73,6 +74,8 @@ void ChessGame::printBoard() const
   std::cout << "En passant target square: " << (enPassantTargetSquare.empty() ? "-" : enPassantTargetSquare) << std::endl;
   std::cout << "Halfmove clock: " << halfmoveClock << std::endl;
   std::cout << "Fullmove number: " << fullmoveNumber << std::endl;
+  std::cout << "------------------------" << std::endl;
+  printBitboards();
   std::cout << "------------------------" << std::endl;
 }
 
@@ -145,36 +148,47 @@ void ChessGame::parseFEN(const std::string &fen)
         break;
       case 'r':
         piece = Piece::r;
+        pieceBitboards[1] |= (1ULL << (row * 8 + col));
         break;
       case 'n':
         piece = Piece::n;
+        pieceBitboards[2] |= (1ULL << (row * 8 + col));
         break;
       case 'b':
         piece = Piece::b;
+        pieceBitboards[3] |= (1ULL << (row * 8 + col));
         break;
       case 'q':
         piece = Piece::q;
+        pieceBitboards[4] |= (1ULL << (row * 8 + col));
         break;
       case 'k':
         piece = Piece::k;
+        pieceBitboards[5] |= (1ULL << (row * 8 + col));
         break;
       case 'P':
         piece = Piece::P;
+        pieceBitboards[6] |= (1ULL << (row * 8 + col));
         break;
       case 'R':
         piece = Piece::R;
+        pieceBitboards[7] |= (1ULL << (row * 8 + col));
         break;
       case 'N':
         piece = Piece::N;
+        pieceBitboards[8] |= (1ULL << (row * 8 + col));
         break;
       case 'B':
         piece = Piece::B;
+        pieceBitboards[9] |= (1ULL << (row * 8 + col));
         break;
       case 'Q':
         piece = Piece::Q;
+        pieceBitboards[10] |= (1ULL << (row * 8 + col));
         break;
       case 'K':
         piece = Piece::K;
+        pieceBitboards[11] |= (1ULL << (row * 8 + col));
         break;
       default:
         piece = Piece::e; // Should not happen
@@ -207,7 +221,15 @@ void ChessGame::parseFEN(const std::string &fen)
   halfmoveClock = std::stoi(halfmove);
   fullmoveNumber = std::stoi(fullmove);
 
-  // These could be added as member variables if needed
+  // Update occupied and empty bitboards
+  for (int i = 0; i < 12; ++i)
+  {
+    if (pieceBitboards[i] != 0)
+    {
+      occupiedBitboard |= pieceBitboards[i];
+    }
+  }
+  emptyBitboard = ~occupiedBitboard;
 }
 
 std::string ChessGame::generateFEN() const
@@ -326,5 +348,15 @@ void ChessGame::resetBoard()
       boardArray[row][col] = Piece::e;
     }
   }
-  // Initialize the chessboard with pieces in their starting positions
+}
+
+void ChessGame::printBitboards() const
+{
+  std::cout << "Bitboards:" << std::endl;
+  for (int i = 0; i < 12; ++i)
+  {
+    std::cout << "Piece " << i << ": " << std::bitset<64>(pieceBitboards[i]) << std::endl;
+  }
+  std::cout << "Occupied Bitboard: " << std::bitset<64>(occupiedBitboard) << std::endl;
+  std::cout << "Empty Bitboard: " << std::bitset<64>(emptyBitboard) << std::endl;
 }
