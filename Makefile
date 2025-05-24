@@ -1,5 +1,5 @@
 CXX      := g++
-CXXFLAGS := -std=c++17 -Wall -Wextra -I./src -MMD -MP
+CXXFLAGS := -std=c++17 -Wall -Wextra -I./src -MMD -MP -g
 #                   ^^^^^       ^^^^^^^
 #  -MMD: generate a .d file with all the headers
 #  -MP:  add phony targets for deleted headers (avoids errors)
