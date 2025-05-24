@@ -53,6 +53,30 @@ int main(int argc, char *argv[])
     ChessGame game;
     game.parseFEN(defaultFEN);
     game.printBoard();
+    game.generateMoves();
+
+    while (!game.isGameOver())
+    {
+        std::string move;
+        std::cout << "Enter your move (or 'exit' to quit): ";
+        std::cin >> move;
+
+        game.generateMoves();
+
+        if (move == "exit")
+        {
+            break;
+        }
+
+        if (game.makeMove(move))
+        {
+            game.printBoard();
+        }
+        else
+        {
+            std::cout << "Invalid move. Try again." << std::endl;
+        }
+    }
 
     return 0;
 }

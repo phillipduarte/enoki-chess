@@ -360,3 +360,51 @@ void ChessGame::printBitboards() const
   std::cout << "Occupied Bitboard: " << std::bitset<64>(occupiedBitboard) << std::endl;
   std::cout << "Empty Bitboard: " << std::bitset<64>(emptyBitboard) << std::endl;
 }
+
+std::vector<ChessGame::Move> ChessGame::generateMoves() const
+{
+  std::vector<Move> moves;
+  if (whiteTurn)
+  {
+    // Generate moves for white pieces
+
+    // Start with pawn moves
+
+    // Pawn move by 1 square moves
+    uint64_t pMovesOne = (pieceBitboards[0] << 8) & emptyBitboard & ~eighthRank;
+
+    std::cout << "Pawn moves by 1 square: " << std::bitset<64>(pMovesOne) << std::endl;
+
+    addMovesFromBitboard(moves, pMovesOne, 0, 8);
+  }
+  else
+  {
+    // Generate moves for black pieces
+  }
+
+  return moves;
+}
+
+// Method to extract moves from a bitboard of destinations
+void ChessGame::addMovesFromBitboard(std::vector<Move> &moves, uint64_t moveBitboard,
+                                     int pieceType, int offsetForSource) const
+{
+  // Loop through each set bit in the moveBitboard
+  while (moveBitboard)
+  {
+    // Get position of least significant bit (first set bit)
+    int destSq = __builtin_ctzll(moveBitboard); // count trailing zeros
+
+    // Calculate source square (for pawns, go back based on offset)
+    int sourceSq = destSq - offsetForSource;
+
+    // Create and add the move
+    Move move;
+    move.from = static_cast<Square>(sourceSq);
+    move.to = static_cast<Square>(destSq);
+    moves.push_back(move);
+
+    // Clear the processed bit
+    moveBitboard &= moveBitboard - 1; // Clear least significant bit
+  }
+}
