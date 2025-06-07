@@ -183,6 +183,9 @@ private:
     uint64_t knightPseudoAttacks[64];
     void initializeKnightAttacks();
 
+    uint64_t kingPseudoAttacks[64];
+    void initializeKingAttacks();
+
     bool isValidMove(const std::string &move) const;
     void applyMove(const std::string &move);
 
@@ -191,6 +194,14 @@ private:
     void printBitboards() const;
 
     int pop_lsb(uint64_t &bitboard) const;
+
+    void printBitboard(uint64_t bitboard) const;
+
+    uint64_t rayAttacks[64][8] = {}; // Precomputed ray attacks for sliding pieces
+    void initializeRayAttacks();
+    void initializeBishopAttacks();
+    void initializeRookAttacks();
+    void initializeQueenAttacks();
 };
 
 #endif // CHESS_H

@@ -9,6 +9,7 @@ ChessGame::ChessGame() : whiteTurn(true)
 {
     // Initialize the chessboard with pieces in their starting positions
     initializeKnightAttacks();
+    initializeKingAttacks();
 }
 
 void ChessGame::printBoard() const
@@ -77,7 +78,6 @@ void ChessGame::printBoard() const
     std::cout << "Fullmove number: " << fullmoveNumber << std::endl;
     std::cout << "------------------------" << std::endl;
     printBitboards();
-    std::cout << "------------------------" << std::endl;
 }
 
 bool ChessGame::makeMove(const std::string &move)
@@ -356,10 +356,16 @@ void ChessGame::printBitboards() const
     std::cout << "Bitboards:" << std::endl;
     for (int i = 0; i < 12; ++i)
     {
-        std::cout << "Piece " << i << ": " << std::bitset<64>(pieceBitboards[i]) << std::endl;
+        std::cout << "Piece " << i << ": " << std::endl;
+        printBitboard(pieceBitboards[i]);
+        std::cout << "------------------------" << std::endl;
     }
-    std::cout << "Occupied Bitboard: " << std::bitset<64>(occupiedBitboard) << std::endl;
-    std::cout << "Empty Bitboard: " << std::bitset<64>(emptyBitboard) << std::endl;
+    std::cout << "Occupied Bitboard: " << std::endl;
+    printBitboard(occupiedBitboard);
+    std::cout << "------------------------" << std::endl;
+    std::cout << "Empty Bitboard: " << std::endl;
+    printBitboard(emptyBitboard);
+    std::cout << "------------------------" << std::endl;
 }
 
 std::vector<ChessGame::Move> ChessGame::generateMoves() const
@@ -412,6 +418,26 @@ std::vector<ChessGame::Move> ChessGame::generateMoves() const
                 moves.push_back(move);
             }
         }
+
+        // King Moves
+        uint64_t kCopy = pieceBitboards[5]; // Copy of king bitboard
+        int kingSq;
+        while (kCopy)
+        {
+            kingSq = pop_lsb(kCopy); // Clear the least significant bit
+            uint64_t kingAttacks = kingPseudoAttacks[kingSq] & ~whitePieceBitboard;
+
+            while (kingAttacks)
+            {
+                int destSq = pop_lsb(kingAttacks); // Get the least significant bit (first attack)
+
+                Move move;
+                move.from = static_cast<Square>(kingSq);
+                move.to = static_cast<Square>(destSq);
+                move.isCapture = (blackPieceBitboard & (1ULL << destSq)) != 0;
+                moves.push_back(move);
+            }
+        }
     }
     else
     {
@@ -453,24 +479,55 @@ void ChessGame::initializeKnightAttacks()
         uint64_t attacks = 0;
         uint64_t bitboardWithPiece = (1ULL << i);
 
-        if (bitboardWithPiece >> 17 & ~fileConst[7])                  // Up-Right
-            attacks |= bitboardWithPiece >> 17;                       // Up-Right
-        if (bitboardWithPiece >> 15 & ~fileConst[0])                  // Up-Left
-            attacks |= bitboardWithPiece >> 15;                       // Up-Left
-        if (bitboardWithPiece >> 10 & ~(fileConst[7] | fileConst[6])) // Down-Right
-            attacks |= bitboardWithPiece >> 10;                       // Down-Right
-        if (bitboardWithPiece >> 6 & ~(fileConst[0] | fileConst[1]))  // Down-Left
-            attacks |= bitboardWithPiece >> 6;                        // Down-Left
-        if (bitboardWithPiece << 17 & ~fileConst[0])                  // Down-Left
-            attacks |= bitboardWithPiece << 17;                       // Down-Left
-        if (bitboardWithPiece << 15 & ~fileConst[7])                  // Down-Right
-            attacks |= bitboardWithPiece << 15;                       // Down-Right
-        if (bitboardWithPiece << 10 & ~(fileConst[0] | fileConst[1])) // Up-Left
-            attacks |= bitboardWithPiece << 10;                       // Up-Left
-        if (bitboardWithPiece << 6 & ~(fileConst[7] | fileConst[6]))  // Up-Right
-            attacks |= bitboardWithPiece << 6;                        // Up-Right
+        if (bitboardWithPiece >> 17 & ~fileConst[7]) // Down-Down-Left
+            attacks |= bitboardWithPiece >> 17;
+        if (bitboardWithPiece >> 15 & ~fileConst[0]) // Down-Down-Right
+            attacks |= bitboardWithPiece >> 15;
+        if (bitboardWithPiece >> 10 & ~(fileConst[7] | fileConst[6])) // Down-Left-Left
+            attacks |= bitboardWithPiece >> 10;
+        if (bitboardWithPiece >> 6 & ~(fileConst[0] | fileConst[1])) // Down-Right-Right
+            attacks |= bitboardWithPiece >> 6;
+        if (bitboardWithPiece << 17 & ~fileConst[0]) // Up-Up-Right
+            attacks |= bitboardWithPiece << 17;
+        if (bitboardWithPiece << 15 & ~fileConst[7]) // Up-Up-Left
+            attacks |= bitboardWithPiece << 15;
+        if (bitboardWithPiece << 10 & ~(fileConst[0] | fileConst[1])) // Up-Right-Right
+            attacks |= bitboardWithPiece << 10;
+        if (bitboardWithPiece << 6 & ~(fileConst[7] | fileConst[6])) // Up-Left-Left
+            attacks |= bitboardWithPiece << 6;
 
         knightPseudoAttacks[i] = attacks;
+    }
+    return;
+}
+
+void ChessGame::initializeKingAttacks()
+{
+    // Initialize king pseudo-attack bitboards
+    for (int i = 0; i < 64; ++i)
+    {
+        uint64_t attacks = 0;
+        uint64_t bitboardWithPiece = (1ULL << i);
+
+        // King can move one square in any direction
+        if (i % 8 != 7)                        // Not on the right edge
+            attacks |= bitboardWithPiece << 1; // Right
+        if (i % 8 != 0)                        // Not on the left edge
+            attacks |= bitboardWithPiece >> 1; // Left
+        if (i < 56)                            // Not on the top edge
+            attacks |= bitboardWithPiece << 8; // Up
+        if (i > 7)                             // Not on the bottom edge
+            attacks |= bitboardWithPiece >> 8; // Down
+        if (i % 8 != 7 && i < 56)              // Not on the right edge and not on the top edge
+            attacks |= bitboardWithPiece << 9; // Up-Right
+        if (i % 8 != 0 && i < 56)              // Not on the left edge and not on the top edge
+            attacks |= bitboardWithPiece << 7; // Up-Left
+        if (i % 8 != 7 && i > 7)               // Not on the right edge and not on the bottom edge
+            attacks |= bitboardWithPiece >> 7; // Down-Right
+        if (i % 8 != 0 && i > 7)               // Not on the left edge and not on the bottom edge
+            attacks |= bitboardWithPiece >> 9; // Down-Left
+
+        kingPseudoAttacks[i] = attacks;
     }
     return;
 }
@@ -480,4 +537,28 @@ int ChessGame::pop_lsb(uint64_t &bb) const
     int index = __builtin_ctzll(bb); // Count trailing zeros
     bb &= bb - 1;                    // Clear the least significant bit
     return index;
+}
+
+void ChessGame::printBitboard(uint64_t bitboard) const
+{
+    for (int i = 7; i >= 0; i--)
+    {
+        for (int j = 0; j < 8; j++)
+        {
+            if (bitboard & (1ULL << (i * 8 + j)))
+            {
+                std::cout << "1 ";
+            }
+            else
+            {
+                std::cout << "0 ";
+            }
+        }
+        std::cout << std::endl;
+    }
+}
+
+void ChessGame::initializeRayAttacks()
+{
+    // Initialize ray attacks table to use as lookup for sliding pieces
 }
