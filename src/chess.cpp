@@ -439,6 +439,65 @@ std::vector<ChessGame::Move> ChessGame::generateMoves() const
                 moves.push_back(move);
             }
         }
+
+        // Rook Moves
+        uint64_t rCopy = pieceBitboards[1]; // Copy of rook bitboard
+        int rookSq;
+        while (rCopy)
+        {
+            rookSq = pop_lsb(rCopy); // Clear the least significant bit
+            uint64_t rookAttacks = getRookAttacks(occupiedBitboard, rookSq) & ~whitePieceBitboard;
+            while (rookAttacks)
+            {
+                int destSq = pop_lsb(rookAttacks); // Get the least significant bit (first attack)
+
+                Move move;
+                move.from = static_cast<Square>(rookSq);
+                move.to = static_cast<Square>(destSq);
+                move.isCapture = (blackPieceBitboard & (1ULL << destSq)) != 0;
+                moves.push_back(move);
+            }
+        }
+
+        // Bishop Moves
+        uint64_t bCopy = pieceBitboards[3]; // Copy of bishop bitboard
+        int bishopSq;
+        while (bCopy)
+        {
+            bishopSq = pop_lsb(bCopy); // Clear the least significant bit
+            uint64_t bishopAttacks = getBishopAttacks(occupiedBitboard, bishopSq) & ~whitePieceBitboard;
+            while (bishopAttacks)
+            {
+                int destSq = pop_lsb(bishopAttacks); // Get the least significant bit (first attack)
+
+                Move move;
+                move.from = static_cast<Square>(bishopSq);
+                move.to = static_cast<Square>(destSq);
+                move.isCapture = (blackPieceBitboard & (1ULL << destSq)) != 0;
+                moves.push_back(move);
+            }
+        }
+
+        // Queen Moves
+        uint64_t qCopy = pieceBitboards[4]; // Copy of queen bitboard
+        int queenSq;
+        while (qCopy)
+        {
+            queenSq = pop_lsb(qCopy); // Clear the least significant bit
+            uint64_t queenAttacks = getQueenAttacks(occupiedBitboard, queenSq) & ~whitePieceBitboard;
+            while (queenAttacks)
+            {
+                int destSq = pop_lsb(queenAttacks); // Get the least significant bit (first attack)
+
+                Move move;
+                move.from = static_cast<Square>(queenSq);
+                move.to = static_cast<Square>(destSq);
+                move.isCapture = (blackPieceBitboard & (1ULL << destSq)) != 0;
+                moves.push_back(move);
+            }
+        }
+
+        // Castling moves
     }
     else
     {
@@ -684,15 +743,45 @@ void ChessGame::initializeRayAttacks()
     return;
 }
 
-uint64_t ChessGame::getRayAttacks(uint64_t occupied, Direction dir8, unsigned long square)
+uint64_t ChessGame::getPositiveRayAttacks(uint64_t occupied, Direction dir8, unsigned long square) const
 {
     uint64_t attacks = rayAttacks[square][static_cast<int>(dir8)];
     uint64_t blocker = attacks & occupied;
-    int firstBlockingSquare = __builtin_ctzll(blocker);
+    int firstBlockingSquare = blocker ? __builtin_ctzll(blocker) : 0;
     attacks ^= rayAttacks[firstBlockingSquare][static_cast<int>(dir8)];
+    std::cout << "Positive ray attacks for square " << square << " in direction " << static_cast<int>(dir8) << ": " << std::endl;
+    printBitboard(attacks);
+    std::cout << "-------------------------" << std::endl;
     return attacks;
 }
 
-void ChessGame::initializeBishopAttacks() {};
-void ChessGame::initializeRookAttacks() {};
-void ChessGame::initializeQueenAttacks() {};
+uint64_t ChessGame::getNegativeRayAttacks(uint64_t occupied, Direction dir8, unsigned long square) const
+{
+    uint64_t attacks = rayAttacks[square][static_cast<int>(dir8)];
+    uint64_t blocker = attacks & occupied;
+    int firstBlockingSquare = blocker ? (63 - __builtin_clzll(blocker)) : 0;
+    attacks ^= rayAttacks[firstBlockingSquare][static_cast<int>(dir8)];
+    std::cout << "Negative ray attacks for square " << square << " in direction " << static_cast<int>(dir8) << ": " << std::endl;
+    printBitboard(attacks);
+    std::cout << "-------------------------" << std::endl;
+    return attacks;
+}
+
+uint64_t ChessGame::getBishopAttacks(uint64_t occupied, int sq) const
+{
+    return diagonalAttacks(occupied, sq) | antiDiagAttacks(occupied, sq);
+}
+
+uint64_t ChessGame::getRookAttacks(uint64_t occupied, int sq) const
+{
+    printBitboard(fileAttacks(occupied, sq));
+    std::cout << "-------------------------" << std::endl;
+    printBitboard(rankAttacks(occupied, sq));
+    std::cout << "-------------------------" << std::endl;
+    return fileAttacks(occupied, sq) | rankAttacks(occupied, sq);
+}
+
+uint64_t ChessGame::getQueenAttacks(uint64_t occupied, int sq) const
+{
+    return getRookAttacks(occupied, sq) | getBishopAttacks(occupied, sq);
+}

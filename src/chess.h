@@ -213,11 +213,32 @@ private:
 
     uint64_t rayAttacks[64][8] = {}; // Precomputed ray attacks for sliding pieces
     void initializeRayAttacks();
-    uint64_t getRayAttacks(uint64_t occupied, Direction dir8, unsigned long square);
+    uint64_t getPositiveRayAttacks(uint64_t occupied, Direction dir8, unsigned long square) const;
+    uint64_t getNegativeRayAttacks(uint64_t occupied, Direction dir8, unsigned long square) const;
 
-    void initializeBishopAttacks();
-    void initializeRookAttacks();
-    void initializeQueenAttacks();
+    uint64_t diagonalAttacks(uint64_t occ, int sq) const
+    {
+        return getPositiveRayAttacks(occ, Direction::NorthEast, sq) | getNegativeRayAttacks(occ, Direction::SouthWest, sq); // ^ +
+    }
+
+    uint64_t antiDiagAttacks(uint64_t occ, int sq) const
+    {
+        return getPositiveRayAttacks(occ, Direction::NorthWest, sq) | getNegativeRayAttacks(occ, Direction::SouthEast, sq); // ^ +
+    }
+
+    uint64_t fileAttacks(uint64_t occ, int sq) const
+    {
+        return getPositiveRayAttacks(occ, Direction::North, sq) | getNegativeRayAttacks(occ, Direction::South, sq); // ^ +
+    }
+
+    uint64_t rankAttacks(uint64_t occ, int sq) const
+    {
+        return getPositiveRayAttacks(occ, Direction::East, sq) | getNegativeRayAttacks(occ, Direction::West, sq); // ^ +
+    }
+
+    uint64_t getBishopAttacks(uint64_t occ, int sq) const;
+    uint64_t getRookAttacks(uint64_t occ, int sq) const;
+    uint64_t getQueenAttacks(uint64_t occ, int sq) const;
 };
 
 #endif // CHESS_H
