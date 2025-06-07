@@ -10,6 +10,7 @@ ChessGame::ChessGame() : whiteTurn(true)
     // Initialize the chessboard with pieces in their starting positions
     initializeKnightAttacks();
     initializeKingAttacks();
+    initializeRayAttacks();
 }
 
 void ChessGame::printBoard() const
@@ -539,6 +540,13 @@ int ChessGame::pop_lsb(uint64_t &bb) const
     return index;
 }
 
+int ChessGame::pop_msb(uint64_t &bb) const
+{
+    int index = 63 - __builtin_clzll(bb); // Count leading zeros
+    bb ^= (1ULL << index);                // Clear the most significant bit (we already know it's 1)
+    return index;
+}
+
 void ChessGame::printBitboard(uint64_t bitboard) const
 {
     for (int i = 7; i >= 0; i--)
@@ -561,4 +569,130 @@ void ChessGame::printBitboard(uint64_t bitboard) const
 void ChessGame::initializeRayAttacks()
 {
     // Initialize ray attacks table to use as lookup for sliding pieces
+    uint64_t northMask = 0x0101010101010100;
+    for (int sq = 0; sq < 64; ++sq)
+    {
+        rayAttacks[sq][static_cast<int>(Direction::North)] = northMask;
+        northMask <<= 1;
+    }
+    uint64_t eastMask = 0x00000000000000FE;
+    for (int file = 0; file < 8; ++file)
+    {
+        uint64_t eastMaskCopy = eastMask;
+        for (int rank = 0; rank < 8; ++rank)
+        {
+            int sq = rank * 8 + file;
+            rayAttacks[sq][static_cast<int>(Direction::East)] = eastMaskCopy;
+            eastMaskCopy <<= 8;
+        }
+        pop_msb(eastMask); // Clear the most significant bit
+        eastMask <<= 1;    // Shift left to prepare for the next file
+    }
+    uint64_t northEastMask = 0x8040201008040200;
+    for (int file = 0; file < 8; ++file)
+    {
+        uint64_t northEastMaskCopy = northEastMask;
+        for (int rank = 0; rank < 8; ++rank)
+        {
+            int sq = rank * 8 + file;
+            rayAttacks[sq][static_cast<int>(Direction::NorthEast)] = northEastMaskCopy;
+            northEastMaskCopy <<= 8;
+        }
+        pop_msb(northEastMask); // Clear the most significant bit
+        northEastMask <<= 1;    // Shift left to prepare for the next file
+    }
+
+    uint64_t southMask = 0x0080808080808080;
+    for (int sq = 63; sq >= 0; --sq)
+    {
+        rayAttacks[sq][static_cast<int>(Direction::South)] = southMask;
+        southMask >>= 1;
+    }
+
+    uint64_t westMask = 0x7F00000000000000;
+    for (int file = 7; file >= 0; --file)
+    {
+        uint64_t westMaskCopy = westMask;
+        for (int rank = 7; rank >= 0; --rank)
+        {
+            int sq = rank * 8 + file;
+            rayAttacks[sq][static_cast<int>(Direction::West)] = westMaskCopy;
+            westMaskCopy >>= 8;
+        }
+        pop_lsb(westMask); // Clear the most significant bit
+        westMask >>= 1;    // Shift right to prepare for the next file
+    }
+
+    uint64_t southWestMask = 0x0040201008040201;
+    for (int file = 7; file >= 0; --file)
+    {
+        uint64_t southWestMaskCopy = southWestMask;
+        for (int rank = 7; rank >= 0; --rank)
+        {
+            int sq = rank * 8 + file;
+            rayAttacks[sq][static_cast<int>(Direction::SouthWest)] = southWestMaskCopy;
+            southWestMaskCopy >>= 8;
+        }
+        pop_lsb(southWestMask); // Clear the most significant bit
+        southWestMask >>= 1;    // Shift right to prepare for the next file
+    }
+
+    uint64_t northWestMask = 0x0102040810204000;
+    for (int file = 7; file >= 0; --file)
+    {
+        uint64_t northWestMaskCopy = northWestMask;
+        for (int rank = 0; rank < 8; ++rank)
+        {
+            int sq = rank * 8 + file;
+            rayAttacks[sq][static_cast<int>(Direction::NorthWest)] = northWestMaskCopy;
+            northWestMaskCopy <<= 8;
+        }
+        pop_msb(northWestMask); // Clear the most significant bit
+        northWestMask >>= 1;    // Shift left to prepare for the next file
+    }
+
+    uint64_t southEastMask = 0x0002040810204080;
+    for (int file = 0; file < 8; ++file)
+    {
+        uint64_t southEastMaskCopy = southEastMask;
+        for (int rank = 7; rank >= 0; --rank)
+        {
+            int sq = rank * 8 + file;
+            rayAttacks[sq][static_cast<int>(Direction::SouthEast)] = southEastMaskCopy;
+            southEastMaskCopy >>= 8;
+        }
+        pop_lsb(southEastMask); // Clear the most significant bit
+        southEastMask <<= 1;    // Shift right to prepare for the next file
+    }
+
+    std::cout << "Ray attacks initialized." << std::endl;
+    printBitboard(rayAttacks[36][static_cast<int>(Direction::NorthEast)]); // Example to print one ray attack
+    std::cout << "-------------------------" << std::endl;
+    printBitboard(rayAttacks[36][static_cast<int>(Direction::North)]); // Example to print one ray attack
+    std::cout << "-------------------------" << std::endl;
+    printBitboard(rayAttacks[36][static_cast<int>(Direction::East)]); // Example to print one ray attack
+    std::cout << "-------------------------" << std::endl;
+    printBitboard(rayAttacks[36][static_cast<int>(Direction::South)]); // Example to print one ray attack
+    std::cout << "-------------------------" << std::endl;
+    printBitboard(rayAttacks[36][static_cast<int>(Direction::West)]); // Example to print one ray attack
+    std::cout << "-------------------------" << std::endl;
+    printBitboard(rayAttacks[36][static_cast<int>(Direction::SouthWest)]); // Example to print one ray attack
+    std::cout << "-------------------------" << std::endl;
+    printBitboard(rayAttacks[36][static_cast<int>(Direction::NorthWest)]); // Example to print one ray attack
+    std::cout << "-------------------------" << std::endl;
+    printBitboard(rayAttacks[36][static_cast<int>(Direction::SouthEast)]); // Example to print one ray attack
+    return;
 }
+
+uint64_t ChessGame::getRayAttacks(uint64_t occupied, Direction dir8, unsigned long square)
+{
+    uint64_t attacks = rayAttacks[square][static_cast<int>(dir8)];
+    uint64_t blocker = attacks & occupied;
+    int firstBlockingSquare = __builtin_ctzll(blocker);
+    attacks ^= rayAttacks[firstBlockingSquare][static_cast<int>(dir8)];
+    return attacks;
+}
+
+void ChessGame::initializeBishopAttacks() {};
+void ChessGame::initializeRookAttacks() {};
+void ChessGame::initializeQueenAttacks() {};

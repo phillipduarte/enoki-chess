@@ -91,6 +91,18 @@ enum class Square : uint8_t
     h8
 };
 
+enum class Direction : uint8_t
+{
+    North,
+    NorthEast,
+    East,
+    SouthEast,
+    South,
+    SouthWest,
+    West,
+    NorthWest
+};
+
 class ChessGame
 {
 public:
@@ -195,10 +207,14 @@ private:
 
     int pop_lsb(uint64_t &bitboard) const;
 
+    int pop_msb(uint64_t &bitboard) const;
+
     void printBitboard(uint64_t bitboard) const;
 
     uint64_t rayAttacks[64][8] = {}; // Precomputed ray attacks for sliding pieces
     void initializeRayAttacks();
+    uint64_t getRayAttacks(uint64_t occupied, Direction dir8, unsigned long square);
+
     void initializeBishopAttacks();
     void initializeRookAttacks();
     void initializeQueenAttacks();
