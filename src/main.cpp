@@ -52,14 +52,51 @@ int main(int argc, char *argv[])
     // Initialize the chess game
     ChessGame game;
     game.parseFEN(defaultFEN);
-    game.printBoard();
+    game.printBoard(true);
     game.generateMoves();
 
     while (!game.isGameOver())
     {
+        game.printBoard(false);
         std::string move;
-        std::cout << "Enter your move (or 'exit' to quit): ";
-        std::cin >> move;
+        std::cout << "Current turn: " << (game.getCurrentTurn() == 0 ? "White" : "Black") << std::endl;
+        if (game_mode == 1 && game.getCurrentTurn() == 1)
+        {
+            // Here you would implement the bot's move logic
+            // For now, we will just simulate a bot move
+            std::cout << "Bot is making a move..." << std::endl;
+            // Simulate a random move or a predefined move
+            move = "e2e4"; // Example of a bot move
+        }
+        else
+        {
+            // Get user input for the move
+            std::cout << "Select your piece" << std::endl;
+            std::string squareString;
+            std::cin >> squareString;
+            int sq = ChessGame::parseSquare(squareString);
+            if (sq < 0 || sq > 63)
+            {
+                std::cout << "Invalid square. Please enter a number between 0 and 63." << std::endl;
+                continue;
+            }
+            std::cout << "Selected square: " << squareString << std::endl;
+            std::cout << "Enter your move (or 'exit' to quit): ";
+            std::string destSquareString;
+            std::cin >> destSquareString;
+            int destSq = ChessGame::parseSquare(destSquareString);
+            if (destSq < 0 || destSq > 63)
+            {
+                std::cout << "Invalid destination square. Please enter a number between 0 and 63." << std::endl;
+                continue;
+            }
+            std::cout << "Selected destination square: " << destSquareString << std::endl;
+            // Construct the move string
+            move = squareString + destSquareString;
+            ChessGame::Move moveStruct;
+            moveStruct.from = static_cast<Square>(sq);
+            moveStruct.to = static_cast<Square>(destSq);
+        }
 
         game.generateMoves();
 
@@ -70,7 +107,7 @@ int main(int argc, char *argv[])
 
         if (game.makeMove(move))
         {
-            game.printBoard();
+            game.printBoard(false);
         }
         else
         {
