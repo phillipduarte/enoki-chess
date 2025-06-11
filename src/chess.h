@@ -118,7 +118,7 @@ public:
     };
 
     ChessGame();
-    void printBoard() const;
+    void printBoard(bool withBitboards) const;
     bool makeMove(const std::string &move);
     bool isGameOver() const;
     void parseFEN(const std::string &fen);
@@ -128,6 +128,12 @@ public:
 
     void addMovesFromBitboard(std::vector<Move> &moves, uint64_t moveBitboard,
                               int pieceType, int offsetForSource) const;
+
+    static int parseSquare(const std::string &squareString);
+    int getCurrentTurn()
+    {
+        return whiteTurn ? 0 : 1; // 0 for white, 1 for black
+    }
 
 private:
     // TODO: Define your board representation here (e.g., array or vector)

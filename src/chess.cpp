@@ -13,11 +13,11 @@ ChessGame::ChessGame() : whiteTurn(true)
     initializeRayAttacks();
 }
 
-void ChessGame::printBoard() const
+void ChessGame::printBoard(bool withBitboards) const
 {
     // Print the chessboard to the console
     std::cout << "Chessboard:" << std::endl;
-    for (int row = 0; row < 8; ++row)
+    for (int row = 7; row >= 0; --row)
     {
         for (int col = 0; col < 8; ++col)
         {
@@ -78,7 +78,10 @@ void ChessGame::printBoard() const
     std::cout << "Halfmove clock: " << halfmoveClock << std::endl;
     std::cout << "Fullmove number: " << fullmoveNumber << std::endl;
     std::cout << "------------------------" << std::endl;
-    printBitboards();
+    if (withBitboards)
+    {
+        printBitboards();
+    }
 }
 
 bool ChessGame::makeMove(const std::string &move)
@@ -784,4 +787,18 @@ uint64_t ChessGame::getRookAttacks(uint64_t occupied, int sq) const
 uint64_t ChessGame::getQueenAttacks(uint64_t occupied, int sq) const
 {
     return getRookAttacks(occupied, sq) | getBishopAttacks(occupied, sq);
+}
+
+int ChessGame::parseSquare(const std::string &square)
+{
+    if (square.length() != 2)
+        return -1; // Invalid square
+
+    int file = square[0] - 'a';
+    int rank = square[1] - '1';
+
+    if (file < 0 || file > 7 || rank < 0 || rank > 7)
+        return -1; // Invalid square
+
+    return rank * 8 + file; // Convert to single index
 }
