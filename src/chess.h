@@ -103,6 +103,12 @@ enum class Direction : uint8_t
     NorthWest
 };
 
+struct PinInfo
+{
+    uint64_t pinned_pieces;
+    uint64_t pin_rays[64]; // Ray from king through pinned piece
+};
+
 class ChessGame
 {
 public:
@@ -134,6 +140,9 @@ public:
     {
         return whiteTurn ? 0 : 1; // 0 for white, 1 for black
     }
+    void printBoardWithMovesByPiece(Square square) const;
+    static std::string getSquareName(Square square);
+    void preworkPosition();
 
 private:
     // TODO: Define your board representation here (e.g., array or vector)
@@ -245,6 +254,13 @@ private:
     uint64_t getBishopAttacks(uint64_t occ, int sq) const;
     uint64_t getRookAttacks(uint64_t occ, int sq) const;
     uint64_t getQueenAttacks(uint64_t occ, int sq) const;
+
+    bool isMoveLegal(const Move &move) const;
+
+    PinInfo calculatePins(uint64_t our_pieces, uint64_t enemy_pieces,
+                          bool is_white);
+
+    uint64_t getRayBetween(int from, int to) const;
 };
 
 #endif // CHESS_H

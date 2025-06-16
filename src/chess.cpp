@@ -92,6 +92,7 @@ bool ChessGame::makeMove(const std::string &move)
     }
     applyMove(move);
     whiteTurn = !whiteTurn;
+    preworkPosition(); // Update the board state after the move
     return true;
 }
 
@@ -726,23 +727,6 @@ void ChessGame::initializeRayAttacks()
         pop_lsb(southEastMask); // Clear the most significant bit
         southEastMask <<= 1;    // Shift right to prepare for the next file
     }
-
-    std::cout << "Ray attacks initialized." << std::endl;
-    printBitboard(rayAttacks[36][static_cast<int>(Direction::NorthEast)]); // Example to print one ray attack
-    std::cout << "-------------------------" << std::endl;
-    printBitboard(rayAttacks[36][static_cast<int>(Direction::North)]); // Example to print one ray attack
-    std::cout << "-------------------------" << std::endl;
-    printBitboard(rayAttacks[36][static_cast<int>(Direction::East)]); // Example to print one ray attack
-    std::cout << "-------------------------" << std::endl;
-    printBitboard(rayAttacks[36][static_cast<int>(Direction::South)]); // Example to print one ray attack
-    std::cout << "-------------------------" << std::endl;
-    printBitboard(rayAttacks[36][static_cast<int>(Direction::West)]); // Example to print one ray attack
-    std::cout << "-------------------------" << std::endl;
-    printBitboard(rayAttacks[36][static_cast<int>(Direction::SouthWest)]); // Example to print one ray attack
-    std::cout << "-------------------------" << std::endl;
-    printBitboard(rayAttacks[36][static_cast<int>(Direction::NorthWest)]); // Example to print one ray attack
-    std::cout << "-------------------------" << std::endl;
-    printBitboard(rayAttacks[36][static_cast<int>(Direction::SouthEast)]); // Example to print one ray attack
     return;
 }
 
@@ -752,9 +736,9 @@ uint64_t ChessGame::getPositiveRayAttacks(uint64_t occupied, Direction dir8, uns
     uint64_t blocker = attacks & occupied;
     int firstBlockingSquare = blocker ? __builtin_ctzll(blocker) : 0;
     attacks ^= rayAttacks[firstBlockingSquare][static_cast<int>(dir8)];
-    std::cout << "Positive ray attacks for square " << square << " in direction " << static_cast<int>(dir8) << ": " << std::endl;
-    printBitboard(attacks);
-    std::cout << "-------------------------" << std::endl;
+    // std::cout << "Positive ray attacks for square " << square << " in direction " << //static_cast<int>(dir8) << ": " << std::endl;
+    // printBitboard(attacks);
+    // std::cout << "-------------------------" << std::endl;
     return attacks;
 }
 
@@ -764,9 +748,9 @@ uint64_t ChessGame::getNegativeRayAttacks(uint64_t occupied, Direction dir8, uns
     uint64_t blocker = attacks & occupied;
     int firstBlockingSquare = blocker ? (63 - __builtin_clzll(blocker)) : 0;
     attacks ^= rayAttacks[firstBlockingSquare][static_cast<int>(dir8)];
-    std::cout << "Negative ray attacks for square " << square << " in direction " << static_cast<int>(dir8) << ": " << std::endl;
-    printBitboard(attacks);
-    std::cout << "-------------------------" << std::endl;
+    // std::cout << "Negative ray attacks for square " << square << " in direction " << static_cast<int>(dir8) << ": " << std::endl;
+    // printBitboard(attacks);
+    // std::cout << "-------------------------" << std::endl;
     return attacks;
 }
 
@@ -777,10 +761,10 @@ uint64_t ChessGame::getBishopAttacks(uint64_t occupied, int sq) const
 
 uint64_t ChessGame::getRookAttacks(uint64_t occupied, int sq) const
 {
-    printBitboard(fileAttacks(occupied, sq));
-    std::cout << "-------------------------" << std::endl;
-    printBitboard(rankAttacks(occupied, sq));
-    std::cout << "-------------------------" << std::endl;
+    // printBitboard(fileAttacks(occupied, sq));
+    // std::cout << "-------------------------" << std::endl;
+    // printBitboard(rankAttacks(occupied, sq));
+    // std::cout << "-------------------------" << std::endl;
     return fileAttacks(occupied, sq) | rankAttacks(occupied, sq);
 }
 
@@ -801,4 +785,159 @@ int ChessGame::parseSquare(const std::string &square)
         return -1; // Invalid square
 
     return rank * 8 + file; // Convert to single index
+}
+
+void ChessGame::printBoardWithMovesByPiece(Square square) const
+{
+    for (int i = 0; i < 12; ++i)
+    {
+        if (pieceBitboards[i] & (1ULL << static_cast<int>(square)))
+        {
+            std::cout << "Piece " << i << " at square " << static_cast<int>(square) << " can move to: ";
+            std::vector<Move> moves = generateMoves();
+            for (const Move &move : moves)
+            {
+                if (move.from == square)
+                {
+                    std::cout << getSquareName(move.to) << " ";
+                }
+            }
+            std::cout << std::endl;
+        }
+    }
+}
+
+std::string ChessGame::getSquareName(Square square)
+{
+    // Convert square index to algebraic notation (e.g., a1, h8)
+    int file = static_cast<int>(square) % 8;
+    int rank = static_cast<int>(square) / 8;
+
+    return std::string(1, 'a' + file) + std::to_string(rank + 1);
+}
+
+bool ChessGame::isMoveLegal(const ChessGame::Move &move) const
+{
+    // Simulate the move and check if it results in a legal position
+}
+
+void ChessGame::preworkPosition()
+{
+    // Precompute knight and king attacks
+    initializeKnightAttacks();
+    initializeKingAttacks();
+
+    // Initialize ray attacks for sliding pieces
+    initializeRayAttacks();
+
+    // Reset the board to the initial position
+    PinInfo pins = calculatePins(occupiedBitboard, emptyBitboard, whiteTurn);
+    std::cout << "Pins calculated: " << std::endl;
+    for (int i = 0; i < 64; ++i)
+    {
+        if (pins.pinned_pieces & (1ULL << i))
+        {
+            std::cout << "Pinned piece at square: " << getSquareName(static_cast<Square>(i)) << std::endl;
+            std::cout << "Pin ray: ";
+            printBitboard(pins.pin_rays[i]);
+        }
+    }
+    return;
+}
+
+PinInfo ChessGame::calculatePins(uint64_t our_pieces, uint64_t enemy_pieces,
+                                 bool is_white)
+{
+    PinInfo pins = {};
+
+    int king_square = pop_lsb(pieceBitboards[is_white ? 5 : 11]); // Get the king square
+
+    // Check for rook/queen pins (orthogonal)
+    uint64_t enemy_rooks_queens = is_white ? (pieceBitboards[7] | pieceBitboards[9] | pieceBitboards[10]) : // Black rooks | Black Bishops | Black queens
+                                      (pieceBitboards[1] | pieceBitboards[3] | pieceBitboards[4]);          // White rooks | White bishops | White queens
+    std::cout << "Enemy rooks/queens bitboard: " << std::endl;
+    printBitboard(enemy_rooks_queens);
+    std::cout << "--------------------------" << std::endl;
+    // For each enemy rook/queen
+    while (enemy_rooks_queens)
+    {
+        int enemy_square = pop_lsb(enemy_rooks_queens);
+
+        // Get ray from enemy piece to king
+        uint64_t ray = getRayBetween(enemy_square, king_square);
+        if (!ray)
+            continue; // Not on same rank/file
+        std::cout << "Ray Between: " << std::endl;
+        printBitboard(ray);
+        std::cout << "--------------------------" << std::endl;
+        // Count our pieces on this ray
+        uint64_t our_pieces_on_ray = ray & our_pieces;
+        if (__builtin_popcountll(our_pieces_on_ray) == 1)
+        {
+            // Exactly one piece - it's pinned!
+            int pinned_square = __builtin_ctzll(our_pieces_on_ray);
+            pins.pinned_pieces |= (1ULL << pinned_square);
+            pins.pin_rays[pinned_square] = ray | (1ULL << enemy_square);
+        }
+    }
+
+    // Repeat for bishops/queens (diagonal pins)
+    // ... similar logic for diagonal rays
+
+    return pins;
+}
+
+uint64_t ChessGame::getRayBetween(int from, int to) const
+{
+    // Get the ray between two squares if they're aligned
+    // Calculate ray direction
+    int diff = to - from;
+    int fileDistance = (to % 8) - (from % 8);
+    int rankDistance = (to / 8) - (from / 8);
+
+    // Check if squares are aligned
+    if (fileDistance != 0 && rankDistance != 0 &&
+        std::abs(fileDistance) != std::abs(rankDistance))
+        return 0; // Not on same diagonal or rank/file
+
+    // Calculate direction
+    int direction = 0;
+    if (fileDistance > 0 && rankDistance == 0)
+        direction = static_cast<int>(Direction::East); // East
+    else if (fileDistance > 0 && rankDistance > 0)
+        direction = static_cast<int>(Direction::NorthEast); // Northeast
+    else if (fileDistance == 0 && rankDistance > 0)
+        direction = static_cast<int>(Direction::North); // North
+    else if (fileDistance < 0 && rankDistance > 0)
+        direction = static_cast<int>(Direction::NorthWest); // Northwest
+    else if (fileDistance < 0 && rankDistance == 0)
+        direction = -static_cast<int>(Direction::West);
+    // West
+    else if (fileDistance < 0 && rankDistance < 0)
+        direction = -static_cast<int>(Direction::SouthWest);
+    // Southwest
+    else if (fileDistance == 0 && rankDistance < 0)
+        direction = -static_cast<int>(Direction::South);
+    // South
+    else if (fileDistance > 0 && rankDistance < 0)
+        direction = -static_cast<int>(Direction::SouthEast);
+    // Southeast
+
+    uint64_t ray = 0;
+    uint64_t toSquareBitboard = 1ULL << to;
+    if (direction > 0) // TODO: make this more efficient
+    {
+        ray = getPositiveRayAttacks(toSquareBitboard, static_cast<Direction>(direction), from);
+        pop_msb(ray);
+    }
+    else
+    {
+        direction = -direction; // Convert to positive direction for calculations
+        ray = getNegativeRayAttacks(toSquareBitboard, static_cast<Direction>(direction), from);
+        pop_lsb(ray); // Clear the least significant bit
+    }
+    // ray = (direction > 0) ? getPositiveRayAttacks(toSquareBitboard, static_cast<Direction>(direction), from)
+    //                       : getNegativeRayAttacks(toSquareBitboard, static_cast<Direction>(-direction), from);
+
+    return ray;
 }

@@ -48,11 +48,13 @@ int main(int argc, char *argv[])
     }
 
     const std::string defaultFEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+    const std::string testingFEN = "rnbqkbnr/pppppppp/4K3/3NRP2/8/1b2r2q/PPPPPPPP/RNBQ1BNR w KQkq - 0 1";
 
     // Initialize the chess game
     ChessGame game;
-    game.parseFEN(defaultFEN);
+    game.parseFEN(testingFEN); // Use the testing FEN for demonstration purposes
     game.printBoard(true);
+    game.preworkPosition();
     game.generateMoves();
 
     while (!game.isGameOver())
@@ -81,6 +83,7 @@ int main(int argc, char *argv[])
                 continue;
             }
             std::cout << "Selected square: " << squareString << std::endl;
+            // game.printBoardWithMovesByPiece(static_cast<Square>(sq));
             std::cout << "Enter your move (or 'exit' to quit): ";
             std::string destSquareString;
             std::cin >> destSquareString;
