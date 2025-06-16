@@ -823,6 +823,10 @@ bool ChessGame::isMoveLegal(const ChessGame::Move &move) const
 
 void ChessGame::preworkPosition()
 {
+    whitePieces = pieceBitboards[0] | pieceBitboards[1] | pieceBitboards[2] | pieceBitboards[3] | pieceBitboards[4] | pieceBitboards[5];
+    blackPieces = pieceBitboards[6] | pieceBitboards[7] | pieceBitboards[8] | pieceBitboards[9] | pieceBitboards[10] | pieceBitboards[11];
+    occupiedBitboard = whitePieces | blackPieces;
+    emptyBitboard = ~occupiedBitboard;
     // Precompute knight and king attacks
     initializeKnightAttacks();
     initializeKingAttacks();
@@ -842,6 +846,23 @@ void ChessGame::preworkPosition()
             printBitboard(pins.pin_rays[i]);
         }
     }
+
+    CheckInfo checkInfo = calculateCheckInfo();
+    std::cout << "Check Info: " << std::endl;
+    std::cout << "Is in check: " << (checkInfo.isInCheck ? "Yes" : "No") << std::endl;
+    if (checkInfo.isInCheck)
+    {
+        std::cout << "Checkers: " << std::endl;
+        printBitboard(checkInfo.checkers);
+        std::cout << "Check ray: " << std::endl;
+        printBitboard(checkInfo.checkBlockSquares);
+        std::cout << std::endl;
+    }
+    else
+    {
+        std::cout << "No check detected." << std::endl;
+    }
+
     return;
 }
 
@@ -850,7 +871,7 @@ PinInfo ChessGame::calculatePins(uint64_t our_pieces, uint64_t enemy_pieces,
 {
     PinInfo pins = {};
 
-    int king_square = pop_lsb(pieceBitboards[is_white ? 5 : 11]); // Get the king square
+    int king_square = __builtin_ctzll(pieceBitboards[is_white ? 5 : 11]); // Get the king square
 
     // Check for rook/queen pins (orthogonal)
     uint64_t enemy_rooks_queens = is_white ? (pieceBitboards[7] | pieceBitboards[9] | pieceBitboards[10]) : // Black rooks | Black Bishops | Black queens
@@ -880,9 +901,6 @@ PinInfo ChessGame::calculatePins(uint64_t our_pieces, uint64_t enemy_pieces,
             pins.pin_rays[pinned_square] = ray | (1ULL << enemy_square);
         }
     }
-
-    // Repeat for bishops/queens (diagonal pins)
-    // ... similar logic for diagonal rays
 
     return pins;
 }
@@ -940,4 +958,81 @@ uint64_t ChessGame::getRayBetween(int from, int to) const
     //                       : getNegativeRayAttacks(toSquareBitboard, static_cast<Direction>(-direction), from);
 
     return ray;
+}
+
+CheckInfo ChessGame::calculateCheckInfo()
+{
+    CheckInfo info = {};
+
+    int kingSquare = __builtin_ctzll(pieceBitboards[whiteTurn ? 5 : 11]); // Get the king square
+    uint64_t enemy_pieces = whiteTurn ? blackPieces : whitePieces;
+
+    // Pawn attacks
+    uint64_t pawnCheckMask = 0;
+    if (whiteTurn)
+    { // White king, check from black pawns
+        // Check FROM northwest and northeast squares (black pawns above the king)
+        if ((kingSquare % 8) > 0)                      // Not on a-file
+            pawnCheckMask |= 1ULL << (kingSquare + 7); // Northwest attack
+        if ((kingSquare % 8) < 7)                      // Not on h-file
+            pawnCheckMask |= 1ULL << (kingSquare + 9); // Northeast attack
+
+        // Check for black pawns (pieceBitboards[6])
+        info.checkers |= pawnCheckMask & pieceBitboards[6];
+    }
+    else
+    { // Black king, check from white pawns
+        // Check FROM southwest and southeast squares (white pawns below the king)
+        if ((kingSquare % 8) > 0)                      // Not on a-file
+            pawnCheckMask |= 1ULL << (kingSquare - 9); // Southwest attack
+        if ((kingSquare % 8) < 7)                      // Not on h-file
+            pawnCheckMask |= 1ULL << (kingSquare - 7); // Southeast attack
+
+        // Check for white pawns (pieceBitboards[0])
+        info.checkers |= pawnCheckMask & pieceBitboards[0];
+    }
+
+    // Check for knight attacks
+    uint64_t knight_attacks = knightPseudoAttacks[kingSquare];                    // Get knight attacks from king square
+    uint64_t enemy_knights = (whiteTurn ? pieceBitboards[8] : pieceBitboards[2]); // Get enemy knights
+    info.checkers |= knight_attacks & enemy_knights;
+
+    // Check for sliding piece attacks (rooks, bishops, queens)
+    // ... similar to pin detection but simpler
+    // Get the rays in all directions from the king square
+    uint64_t occupied = occupiedBitboard;
+    // Check for enemy rooks/queens (orthogonal) and bishops/queens (diagonal)
+    uint64_t enemy_sliding_pieces = (whiteTurn ? (pieceBitboards[7] | pieceBitboards[9] | pieceBitboards[10]) : // Black rooks/queens/bishops
+                                         (pieceBitboards[1] | pieceBitboards[3] | pieceBitboards[4]));          // White rooks/queens/bishops
+    for (int dir = static_cast<int>(Direction::NorthWest); dir <= static_cast<int>(Direction::West); ++dir)
+    {
+        uint64_t ray;
+        if (dir < 4)
+        { // Positive Rays
+            ray = getPositiveRayAttacks(occupied, static_cast<Direction>(dir), kingSquare);
+        }
+        else
+        {
+            ray = getNegativeRayAttacks(occupied, static_cast<Direction>(dir), kingSquare);
+        }
+        if (ray == 0)
+            continue; // No ray in this direction
+
+        uint64_t sliding_checkers = ray & enemy_sliding_pieces;
+        if (sliding_checkers)
+        {
+            info.checkers |= sliding_checkers;
+        }
+    }
+
+    info.isInCheck = info.checkers != 0;
+
+    // Calculate block squares if in single check
+    if (info.isInCheck && __builtin_popcountll(info.checkers) == 1)
+    {
+        int checker_square = __builtin_ctzll(info.checkers);
+        info.checkBlockSquares = getRayBetween(checker_square, kingSquare);
+    }
+
+    return info;
 }

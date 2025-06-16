@@ -91,8 +91,9 @@ enum class Square : uint8_t
     h8
 };
 
-enum class Direction : uint8_t
+enum class Direction : uint8_t // Start at NW and go clockwise
 {
+    NorthWest,
     North,
     NorthEast,
     East,
@@ -100,13 +101,19 @@ enum class Direction : uint8_t
     South,
     SouthWest,
     West,
-    NorthWest
 };
 
 struct PinInfo
 {
     uint64_t pinned_pieces;
     uint64_t pin_rays[64]; // Ray from king through pinned piece
+};
+
+struct CheckInfo
+{
+    bool isInCheck = false;     // Is the king in check?
+    uint64_t checkers;          // Bitboard of squares attacking the king
+    uint64_t checkBlockSquares; // Squares that can block all checks
 };
 
 class ChessGame
@@ -172,6 +179,8 @@ private:
 
     // Bitboards
     uint64_t pieceBitboards[12] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}; // prnbqkPRNBQK
+    uint64_t whitePieces = 0;                                           // Bitboard for all white pieces
+    uint64_t blackPieces = 0;                                           // Bitboard for all black pieces
     uint64_t occupiedBitboard = 0;
     uint64_t emptyBitboard = 0;
 
@@ -261,6 +270,8 @@ private:
                           bool is_white);
 
     uint64_t getRayBetween(int from, int to) const;
+
+    CheckInfo calculateCheckInfo();
 };
 
 #endif // CHESS_H
