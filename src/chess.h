@@ -266,12 +266,23 @@ private:
 
     bool isMoveLegal(const Move &move) const;
 
+    PinInfo pinInfoStruct = {};     // Struct to hold pin information
+    CheckInfo checkInfoStruct = {}; // Struct to hold check information
+
     PinInfo calculatePins(uint64_t our_pieces, uint64_t enemy_pieces,
                           bool is_white);
 
     uint64_t getRayBetween(int from, int to) const;
 
     CheckInfo calculateCheckInfo();
+
+    void generatePawnMoves(std::vector<Move> &moves) const;
+    void generateKnightMoves(std::vector<Move> &moves) const;
+    void generateBishopMoves(std::vector<Move> &moves) const;
+    void generateRookMoves(std::vector<Move> &moves) const;
+    void generateQueenMoves(std::vector<Move> &moves) const;
+    void generateKingMoves(std::vector<Move> &moves) const;
+    void generateCastlingMoves(std::vector<Move> &moves) const;
 };
 
 #endif // CHESS_H

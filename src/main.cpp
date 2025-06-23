@@ -48,7 +48,7 @@ int main(int argc, char *argv[])
     }
 
     const std::string defaultFEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-    const std::string testingFEN = "rnbq1bnr/pppppppp/3Nk3/8/8/1B2R2Q/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+    const std::string testingFEN = "rnbq1bnr/pppppppp/3Nk3/3nnn2/8/1B2R2Q/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
     // Initialize the chess game
     ChessGame game;

@@ -388,120 +388,28 @@ std::vector<ChessGame::Move> ChessGame::generateMoves() const
         // Start with pawn moves
 
         // Pawn move by 1 square moves
-        uint64_t pMovesOne = (pieceBitboards[0] << 8) & emptyBitboard & ~rankConst[7];
-        addMovesFromBitboard(moves, pMovesOne, 0, 8);
-
-        // Pawn move by 2 square moves
-        uint64_t pMovesTwo = (pieceBitboards[0] << 16) & emptyBitboard & (emptyBitboard << 8) & rankConst[3];
-        addMovesFromBitboard(moves, pMovesTwo, 0, 16);
-
-        // Pawn move captures to left
-        uint64_t pMovesLeft = (pieceBitboards[0] << 9) & blackPieceBitboard & ~rankConst[7] & ~fileConst[7];
-        addMovesFromBitboard(moves, pMovesLeft, 0, 9);
-        // Pawn move captures to right
-        uint64_t pMovesRight = (pieceBitboards[0] << 7) & blackPieceBitboard & ~rankConst[7] & ~fileConst[0];
-        addMovesFromBitboard(moves, pMovesRight, 0, 7);
 
         // TODO: Pawn promotion moves
 
-        // Knight moves
-        uint64_t nCopy = pieceBitboards[2]; // Copy of knight bitboard
-        int knightSq;
-        while (nCopy)
+        generateKingMoves(moves); // Generate king moves first to check for checks
+
+        if (__builtin_popcountll(checkInfoStruct.checkers) >= 2) // King is in double check -> only king moves
         {
-            knightSq = pop_lsb(nCopy); // Clear the least significant bit
-            uint64_t knightAttacks = knightPseudoAttacks[knightSq] & ~whitePieceBitboard;
-
-            while (knightAttacks)
-            {
-                int destSq = pop_lsb(knightAttacks); // Get the least significant bit (first attack)
-
-                Move move;
-                move.from = static_cast<Square>(knightSq);
-                move.to = static_cast<Square>(destSq);
-                move.isCapture = (blackPieceBitboard & (1ULL << destSq)) != 0;
-                moves.push_back(move);
-            }
+            return moves;
         }
 
-        // King Moves
-        uint64_t kCopy = pieceBitboards[5]; // Copy of king bitboard
-        int kingSq;
-        while (kCopy)
-        {
-            kingSq = pop_lsb(kCopy); // Clear the least significant bit
-            uint64_t kingAttacks = kingPseudoAttacks[kingSq] & ~whitePieceBitboard;
-
-            while (kingAttacks)
-            {
-                int destSq = pop_lsb(kingAttacks); // Get the least significant bit (first attack)
-
-                Move move;
-                move.from = static_cast<Square>(kingSq);
-                move.to = static_cast<Square>(destSq);
-                move.isCapture = (blackPieceBitboard & (1ULL << destSq)) != 0;
-                moves.push_back(move);
-            }
-        }
-
-        // Rook Moves
-        uint64_t rCopy = pieceBitboards[1]; // Copy of rook bitboard
-        int rookSq;
-        while (rCopy)
-        {
-            rookSq = pop_lsb(rCopy); // Clear the least significant bit
-            uint64_t rookAttacks = getRookAttacks(occupiedBitboard, rookSq) & ~whitePieceBitboard;
-            while (rookAttacks)
-            {
-                int destSq = pop_lsb(rookAttacks); // Get the least significant bit (first attack)
-
-                Move move;
-                move.from = static_cast<Square>(rookSq);
-                move.to = static_cast<Square>(destSq);
-                move.isCapture = (blackPieceBitboard & (1ULL << destSq)) != 0;
-                moves.push_back(move);
-            }
-        }
-
-        // Bishop Moves
-        uint64_t bCopy = pieceBitboards[3]; // Copy of bishop bitboard
-        int bishopSq;
-        while (bCopy)
-        {
-            bishopSq = pop_lsb(bCopy); // Clear the least significant bit
-            uint64_t bishopAttacks = getBishopAttacks(occupiedBitboard, bishopSq) & ~whitePieceBitboard;
-            while (bishopAttacks)
-            {
-                int destSq = pop_lsb(bishopAttacks); // Get the least significant bit (first attack)
-
-                Move move;
-                move.from = static_cast<Square>(bishopSq);
-                move.to = static_cast<Square>(destSq);
-                move.isCapture = (blackPieceBitboard & (1ULL << destSq)) != 0;
-                moves.push_back(move);
-            }
-        }
-
-        // Queen Moves
-        uint64_t qCopy = pieceBitboards[4]; // Copy of queen bitboard
-        int queenSq;
-        while (qCopy)
-        {
-            queenSq = pop_lsb(qCopy); // Clear the least significant bit
-            uint64_t queenAttacks = getQueenAttacks(occupiedBitboard, queenSq) & ~whitePieceBitboard;
-            while (queenAttacks)
-            {
-                int destSq = pop_lsb(queenAttacks); // Get the least significant bit (first attack)
-
-                Move move;
-                move.from = static_cast<Square>(queenSq);
-                move.to = static_cast<Square>(destSq);
-                move.isCapture = (blackPieceBitboard & (1ULL << destSq)) != 0;
-                moves.push_back(move);
-            }
-        }
+        generateKnightMoves(moves);
+        generateBishopMoves(moves);
+        generateRookMoves(moves);
+        generateQueenMoves(moves);
 
         // Castling moves
+        if (!checkInfoStruct.isInCheck)
+        {
+            generateCastlingMoves(moves);
+        }
+
+        return moves;
     }
     else
     {
@@ -509,6 +417,218 @@ std::vector<ChessGame::Move> ChessGame::generateMoves() const
     }
 
     return moves;
+}
+
+void ChessGame::generatePawnMoves(std::vector<Move> &moves) const
+{
+    // Generate pawn moves for the current turn
+    uint64_t pawnBitboard = pieceBitboards[whiteTurn ? 0 : 6]; // Assuming 0 is the index for white pawns and 6 for black pawns
+    int pawnSq;
+
+    while (pawnBitboard)
+    {
+        pawnSq = pop_lsb(pawnBitboard); // Get the least significant bit (first pawn)
+
+        // Forward move
+        int forwardSq = pawnSq + (whiteTurn ? 8 : -8);
+        if ((whiteTurn && forwardSq < 64 && boardArray[forwardSq / 8][forwardSq % 8] == Piece::e) ||
+            (!whiteTurn && forwardSq >= 0 && boardArray[forwardSq / 8][forwardSq % 8] == Piece::e))
+        {
+            Move move;
+            move.from = static_cast<Square>(pawnSq);
+            move.to = static_cast<Square>(forwardSq);
+            move.isCapture = false;
+            moves.push_back(move);
+
+            // Double forward move
+            int doubleForwardSq = forwardSq + (whiteTurn ? 8 : -8);
+            if ((whiteTurn && doubleForwardSq < 64 && boardArray[doubleForwardSq / 8][doubleForwardSq % 8] == Piece::e &&
+                 (pawnSq / 8 == (whiteTurn ? 1 : 6))) ||
+                (!whiteTurn && doubleForwardSq >= 0 && boardArray[doubleForwardSq / 8][doubleForwardSq % 8] == Piece::e &&
+                 (pawnSq / 8 == (whiteTurn ? 6 : 1))))
+            {
+                Move doubleMove;
+                doubleMove.from = static_cast<Square>(pawnSq);
+                doubleMove.to = static_cast<Square>(doubleForwardSq);
+                doubleMove.isCapture = false;
+                moves.push_back(doubleMove);
+            }
+        }
+    }
+    // Capture moves
+}
+
+void ChessGame::generateKnightMoves(std::vector<Move> &moves) const
+{
+    // Generate knight moves for the current turn
+    uint64_t knightBitboard = pieceBitboards[whiteTurn ? 2 : 8] & ~pinInfoStruct.pinned_pieces; // Assuming 2 is the index for white knights and 8 for black knights
+    int knightSq;
+
+    while (knightBitboard)
+    {
+        knightSq = pop_lsb(knightBitboard); // Get the least significant bit (first knight)
+
+        // Get all possible attacks for this knight
+        uint64_t attacks = knightPseudoAttacks[knightSq] & ~(whiteTurn ? whitePieces : blackPieces);
+
+        while (attacks)
+        {
+            int destSq = pop_lsb(attacks); // Get the least significant bit (first attack)
+
+            Move move;
+            move.from = static_cast<Square>(knightSq);
+            move.to = static_cast<Square>(destSq);
+            move.isCapture = ((whiteTurn ? blackPieces : whitePieces) & (1ULL << destSq)) != 0; // Check if it's a capture
+            moves.push_back(move);
+        }
+    }
+}
+
+void ChessGame::generateRookMoves(std::vector<Move> &moves) const
+{
+    // Generate rook moves for the current turn
+    uint64_t rookBitboard = pieceBitboards[whiteTurn ? 1 : 7]; // Assuming 1 is the index for rooks
+    int rookSq;
+
+    while (rookBitboard)
+    {
+        rookSq = pop_lsb(rookBitboard); // Get the least significant bit (first rook)
+
+        // Get all possible attacks for this rook
+        uint64_t attacks = getRookAttacks(occupiedBitboard, rookSq) & ~(whiteTurn ? whitePieces : blackPieces);
+
+        while (attacks)
+        {
+            int destSq = pop_lsb(attacks); // Get the least significant bit (first attack)
+
+            Move move;
+            move.from = static_cast<Square>(rookSq);
+            move.to = static_cast<Square>(destSq);
+            move.isCapture = ((whiteTurn ? blackPieces : whitePieces) & (1ULL << destSq)) != 0; // Check if it's a capture
+            moves.push_back(move);
+        }
+    }
+}
+
+void ChessGame::generateBishopMoves(std::vector<Move> &moves) const
+{
+    // Generate bishop moves for the current turn
+    uint64_t bishopBitboard = pieceBitboards[whiteTurn ? 3 : 9]; // Assuming 3 is the index for bishops
+    int bishopSq;
+
+    while (bishopBitboard)
+    {
+        bishopSq = pop_lsb(bishopBitboard); // Get the least significant bit (first bishop)
+
+        // Get all possible attacks for this bishop
+        uint64_t attacks = getBishopAttacks(occupiedBitboard, bishopSq) & ~(whiteTurn ? whitePieces : blackPieces);
+
+        while (attacks)
+        {
+            int destSq = pop_lsb(attacks); // Get the least significant bit (first attack)
+
+            Move move;
+            move.from = static_cast<Square>(bishopSq);
+            move.to = static_cast<Square>(destSq);
+            move.isCapture = ((whiteTurn ? blackPieces : whitePieces) & (1ULL << destSq)) != 0; // Check if it's a capture
+            moves.push_back(move);
+        }
+    }
+}
+
+void ChessGame::generateQueenMoves(std::vector<Move> &moves) const
+{
+    // Generate queen moves for the current turn
+    uint64_t queenBitboard = pieceBitboards[whiteTurn ? 4 : 10]; // Assuming 4 is the index for queens
+    int queenSq;
+
+    while (queenBitboard)
+    {
+        queenSq = pop_lsb(queenBitboard); // Get the least significant bit (first queen)
+
+        // Get all possible attacks for this queen
+        uint64_t attacks = getQueenAttacks(occupiedBitboard, queenSq) & ~(whiteTurn ? whitePieces : blackPieces);
+
+        while (attacks)
+        {
+            int destSq = pop_lsb(attacks); // Get the least significant bit (first attack)
+
+            Move move;
+            move.from = static_cast<Square>(queenSq);
+            move.to = static_cast<Square>(destSq);
+            move.isCapture = ((whiteTurn ? blackPieces : whitePieces) & (1ULL << destSq)) != 0; // Check if it's a capture
+            moves.push_back(move);
+        }
+    }
+}
+
+void ChessGame::generateKingMoves(std::vector<Move> &moves) const // Only legal moves
+{
+    // Generate king moves for the current turn
+    uint64_t kingBitboard = pieceBitboards[whiteTurn ? 5 : 11]; // Assuming 5 is the index for kings
+    int kingSq;
+
+    while (kingBitboard)
+    {
+        kingSq = pop_lsb(kingBitboard); // Get the least significant bit (first king)
+
+        // Get all possible attacks for this king
+        uint64_t attacks = kingPseudoAttacks[kingSq] & ~(whiteTurn ? whitePieces : blackPieces);
+
+        while (attacks)
+        {
+            int destSq = pop_lsb(attacks); // Get the least significant bit (first attack)
+
+            Move move;
+            move.from = static_cast<Square>(kingSq);
+            move.to = static_cast<Square>(destSq);
+            move.isCapture = ((whiteTurn ? blackPieces : whitePieces) & (1ULL << destSq)) != 0; // Check if it's a capture
+            moves.push_back(move);
+        }
+    }
+}
+
+void ChessGame::generateCastlingMoves(std::vector<Move> &moves) const
+{
+    // Generate castling moves for the current turn
+    if (whiteTurn)
+    {
+        if (castlingRights[0]) // White kingside castling
+        {
+            Move move;
+            move.from = Square::e1;
+            move.to = Square::g1;
+            move.isCastling = true;
+            moves.push_back(move);
+        }
+        if (castlingRights[1]) // White queenside castling
+        {
+            Move move;
+            move.from = Square::e1;
+            move.to = Square::c1;
+            move.isCastling = true;
+            moves.push_back(move);
+        }
+    }
+    else
+    {
+        if (castlingRights[2]) // Black kingside castling
+        {
+            Move move;
+            move.from = Square::e8;
+            move.to = Square::g8;
+            move.isCastling = true;
+            moves.push_back(move);
+        }
+        if (castlingRights[3]) // Black queenside castling
+        {
+            Move move;
+            move.from = Square::e8;
+            move.to = Square::c8;
+            move.isCastling = true;
+            moves.push_back(move);
+        }
+    }
 }
 
 // Method to extract moves from a bitboard of destinations
@@ -835,27 +955,27 @@ void ChessGame::preworkPosition()
     initializeRayAttacks();
 
     // Reset the board to the initial position
-    PinInfo pins = calculatePins(occupiedBitboard, emptyBitboard, whiteTurn);
+    pinInfoStruct = calculatePins(occupiedBitboard, emptyBitboard, whiteTurn);
     std::cout << "Pins calculated: " << std::endl;
     for (int i = 0; i < 64; ++i)
     {
-        if (pins.pinned_pieces & (1ULL << i))
+        if (pinInfoStruct.pinned_pieces & (1ULL << i))
         {
             std::cout << "Pinned piece at square: " << getSquareName(static_cast<Square>(i)) << std::endl;
             std::cout << "Pin ray: ";
-            printBitboard(pins.pin_rays[i]);
+            printBitboard(pinInfoStruct.pin_rays[i]);
         }
     }
 
-    CheckInfo checkInfo = calculateCheckInfo();
+    checkInfoStruct = calculateCheckInfo();
     std::cout << "Check Info: " << std::endl;
-    std::cout << "Is in check: " << (checkInfo.isInCheck ? "Yes" : "No") << std::endl;
-    if (checkInfo.isInCheck)
+    std::cout << "Is in check: " << (checkInfoStruct.isInCheck ? "Yes" : "No") << std::endl;
+    if (checkInfoStruct.isInCheck)
     {
         std::cout << "Checkers: " << std::endl;
-        printBitboard(checkInfo.checkers);
+        printBitboard(checkInfoStruct.checkers);
         std::cout << "Check ray: " << std::endl;
-        printBitboard(checkInfo.checkBlockSquares);
+        printBitboard(checkInfoStruct.checkBlockSquares);
         std::cout << std::endl;
     }
     else
