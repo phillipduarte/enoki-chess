@@ -11,6 +11,7 @@ ChessGame::ChessGame() : whiteTurn(true)
     initializeKnightAttacks();
     initializeKingAttacks();
     initializeRayAttacks();
+    movesVector = std::vector<Move>();
 }
 
 void ChessGame::printBoard(bool withBitboards) const
@@ -84,27 +85,77 @@ void ChessGame::printBoard(bool withBitboards) const
     }
 }
 
-bool ChessGame::makeMove(const std::string &move)
+bool ChessGame::makeMove(const std::string &moveStr)
 {
+    Move move = {};
+    move.from = static_cast<Square>(ChessGame::parseSquare(moveStr.substr(0, 2)));
+    move.to = static_cast<Square>(ChessGame::parseSquare(moveStr.substr(2, 2)));
     if (!isValidMove(move))
     {
         return false;
     }
     applyMove(move);
+    return true;
+}
+
+bool ChessGame::isValidMove(const ChessGame::Move &move) const
+{
+    // Check if move is in our moves vector
+    for (const Move &m : movesVector)
+    {
+        if (m.from == move.from &&
+            m.to == move.to)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+void ChessGame::applyMove(const ChessGame::Move &move)
+{
+    uint64_t fromBB = 1ULL << static_cast<int>(move.from);
+    uint64_t toBB = 1ULL << static_cast<int>(move.to);
+
+    // Find piece at square
+    Piece piece = getPieceAtSquareFromBB(move.from);
+    if (piece == Piece::e)
+    {
+        std::cerr << "No piece at source square." << std::endl;
+        return; // No piece to move
+    }
+
+    // Remove piece from source square
+    pieceBitboards[static_cast<int>(piece) - 1] &= ~fromBB;
+
+    if (move.isCapture)
+    {
+        // If it's a capture, remove the captured piece from its bitboard
+        Piece capturedPiece = getPieceAtSquareFromBB(move.to);
+        if (capturedPiece != Piece::e)
+        {
+            pieceBitboards[static_cast<int>(capturedPiece) - 1] &= ~toBB;
+        }
+    }
+
+    // Add piece to destination square
+    pieceBitboards[static_cast<int>(piece) - 1] |= toBB;
+
     whiteTurn = !whiteTurn;
     preworkPosition(); // Update the board state after the move
-    return true;
+    printf("Move applied: %s to %s\n", ChessGame::getSquareName(move.from).c_str(), ChessGame::getSquareName(move.to).c_str());
 }
 
-bool ChessGame::isValidMove(const std::string &move) const
+Piece ChessGame::getPieceAtSquareFromBB(Square square) const
 {
-    // TODO: Validate syntax and legal move
-    return true;
-}
-
-void ChessGame::applyMove(const std::string &move)
-{
-    // TODO: Update board based on move
+    for (int i = 0; i < 12; ++i)
+    {
+        if (pieceBitboards[i] & (1ULL << static_cast<int>(square)))
+        {
+            return static_cast<Piece>(i + 1); // +1 because 0 is empty square
+        }
+    }
+    return Piece::e; // Empty square
 }
 
 bool ChessGame::isGameOver() const
@@ -381,41 +432,34 @@ std::vector<ChessGame::Move> ChessGame::generateMoves() const
 
     uint64_t blackPieceBitboard = pieceBitboards[6] | pieceBitboards[7] | pieceBitboards[8] | pieceBitboards[9] | pieceBitboards[10] | pieceBitboards[11];
 
-    if (whiteTurn)
+    // Generate moves for white pieces
+
+    // Start with pawn moves
+
+    // Pawn move by 1 square moves
+
+    // TODO: Pawn promotion moves
+
+    generateKingMoves(moves); // Generate king moves first to check for checks
+
+    if (__builtin_popcountll(checkInfoStruct.checkers) >= 2) // King is in double check -> only king moves
     {
-        // Generate moves for white pieces
-
-        // Start with pawn moves
-
-        // Pawn move by 1 square moves
-
-        // TODO: Pawn promotion moves
-
-        generateKingMoves(moves); // Generate king moves first to check for checks
-
-        if (__builtin_popcountll(checkInfoStruct.checkers) >= 2) // King is in double check -> only king moves
-        {
-            return moves;
-        }
-
-        generateKnightMoves(moves);
-        generateBishopMoves(moves);
-        generateRookMoves(moves);
-        generateQueenMoves(moves);
-
-        // Castling moves
-        if (!checkInfoStruct.isInCheck)
-        {
-            generateCastlingMoves(moves);
-        }
-
         return moves;
     }
-    else
+
+    generatePawnMoves(moves);
+    generateKnightMoves(moves);
+    generateBishopMoves(moves);
+    generateRookMoves(moves);
+    generateQueenMoves(moves);
+
+    // Castling moves
+    if (!checkInfoStruct.isInCheck)
     {
-        // Generate moves for black pieces
+        generateCastlingMoves(moves);
     }
 
+    movesVector = moves; // Store the generated moves in the moves vector
     return moves;
 }
 
@@ -434,11 +478,38 @@ void ChessGame::generatePawnMoves(std::vector<Move> &moves) const
         if ((whiteTurn && forwardSq < 64 && boardArray[forwardSq / 8][forwardSq % 8] == Piece::e) ||
             (!whiteTurn && forwardSq >= 0 && boardArray[forwardSq / 8][forwardSq % 8] == Piece::e))
         {
-            Move move;
-            move.from = static_cast<Square>(pawnSq);
-            move.to = static_cast<Square>(forwardSq);
-            move.isCapture = false;
-            moves.push_back(move);
+            if (pinInfoStruct.pinned_pieces & (1ULL << pawnSq))
+            {
+                // If the pawn is pinned, it can only move forward if the pin ray allows it
+                if ((pinInfoStruct.pin_rays[pawnSq] & (1ULL << forwardSq)))
+                {
+                    Move move;
+                    move.from = static_cast<Square>(pawnSq);
+                    move.to = static_cast<Square>(forwardSq);
+                    move.isCapture = false;
+                    moves.push_back(move);
+                }
+            }
+            else if (checkInfoStruct.isInCheck)
+            {
+                // If the king is in check, only allow moves that block the check or capture the checking piece
+                if ((checkInfoStruct.checkers & (1ULL << forwardSq)) || (checkInfoStruct.checkBlockSquares & (1ULL << forwardSq)))
+                {
+                    Move move;
+                    move.from = static_cast<Square>(pawnSq);
+                    move.to = static_cast<Square>(forwardSq);
+                    move.isCapture = false;
+                    moves.push_back(move);
+                }
+            }
+            else
+            {
+                Move move;
+                move.from = static_cast<Square>(pawnSq);
+                move.to = static_cast<Square>(forwardSq);
+                move.isCapture = false;
+                moves.push_back(move);
+            }
 
             // Double forward move
             int doubleForwardSq = forwardSq + (whiteTurn ? 8 : -8);
@@ -447,15 +518,117 @@ void ChessGame::generatePawnMoves(std::vector<Move> &moves) const
                 (!whiteTurn && doubleForwardSq >= 0 && boardArray[doubleForwardSq / 8][doubleForwardSq % 8] == Piece::e &&
                  (pawnSq / 8 == (whiteTurn ? 6 : 1))))
             {
-                Move doubleMove;
-                doubleMove.from = static_cast<Square>(pawnSq);
-                doubleMove.to = static_cast<Square>(doubleForwardSq);
-                doubleMove.isCapture = false;
-                moves.push_back(doubleMove);
+                if (pinInfoStruct.pinned_pieces & (1ULL << pawnSq))
+                {
+                    // If the pawn is pinned, it can only move forward if the pin ray allows it
+                    if ((pinInfoStruct.pin_rays[pawnSq] & (1ULL << doubleForwardSq)))
+                    {
+                        Move doubleMove;
+                        doubleMove.from = static_cast<Square>(pawnSq);
+                        doubleMove.to = static_cast<Square>(doubleForwardSq);
+                        doubleMove.isCapture = false;
+                        moves.push_back(doubleMove);
+                    }
+                }
+                else if (checkInfoStruct.isInCheck)
+                {
+                    // If the king is in check, only allow moves that block the check or capture the checking piece
+                    if ((checkInfoStruct.checkers & (1ULL << doubleForwardSq)) || (checkInfoStruct.checkBlockSquares & (1ULL << doubleForwardSq)))
+                    {
+                        Move doubleMove;
+                        doubleMove.from = static_cast<Square>(pawnSq);
+                        doubleMove.to = static_cast<Square>(doubleForwardSq);
+                        doubleMove.isCapture = false;
+                        moves.push_back(doubleMove);
+                    }
+                }
+                else
+                {
+                    Move doubleMove;
+                    doubleMove.from = static_cast<Square>(pawnSq);
+                    doubleMove.to = static_cast<Square>(doubleForwardSq);
+                    doubleMove.isCapture = false;
+                    moves.push_back(doubleMove);
+                }
+            }
+        }
+
+        // Capture moves
+        int leftCaptureSq = pawnSq + (whiteTurn ? 7 : -9); // Left capture square
+        if ((whiteTurn && leftCaptureSq < 64 && (1ULL << leftCaptureSq) & blackPieces) ||
+            (!whiteTurn && leftCaptureSq >= 0 && (1ULL << leftCaptureSq) & whitePieces))
+        {
+            if (pinInfoStruct.pinned_pieces & (1ULL << pawnSq))
+            {
+                // If the pawn is pinned, it can only capture if the pin ray allows it
+                if ((pinInfoStruct.pin_rays[pawnSq] & (1ULL << leftCaptureSq)))
+                {
+                    Move move;
+                    move.from = static_cast<Square>(pawnSq);
+                    move.to = static_cast<Square>(leftCaptureSq);
+                    move.isCapture = true;
+                    moves.push_back(move);
+                }
+            }
+            else if (checkInfoStruct.isInCheck)
+            {
+                // If the king is in check, only allow moves that block the check or capture the checking piece
+                if ((checkInfoStruct.checkers & (1ULL << leftCaptureSq)) || (checkInfoStruct.checkBlockSquares & (1ULL << leftCaptureSq)))
+                {
+                    Move move;
+                    move.from = static_cast<Square>(pawnSq);
+                    move.to = static_cast<Square>(leftCaptureSq);
+                    move.isCapture = true;
+                    moves.push_back(move);
+                }
+            }
+            else
+            {
+                Move move;
+                move.from = static_cast<Square>(pawnSq);
+                move.to = static_cast<Square>(leftCaptureSq);
+                move.isCapture = true;
+                moves.push_back(move);
+            }
+        }
+        int rightCaptureSq = pawnSq + (whiteTurn ? 9 : -7);
+        if ((whiteTurn && rightCaptureSq < 64 && (1ULL << rightCaptureSq) & blackPieces) ||
+            (!whiteTurn && rightCaptureSq >= 0 && (1ULL << rightCaptureSq) & whitePieces))
+        {
+            if (pinInfoStruct.pinned_pieces & (1ULL << pawnSq))
+            {
+                // If the pawn is pinned, it can only capture if the pin ray allows it
+                if ((pinInfoStruct.pin_rays[pawnSq] & (1ULL << rightCaptureSq)))
+                {
+                    Move move;
+                    move.from = static_cast<Square>(pawnSq);
+                    move.to = static_cast<Square>(rightCaptureSq);
+                    move.isCapture = true;
+                    moves.push_back(move);
+                }
+            }
+            else if (checkInfoStruct.isInCheck)
+            {
+                // If the king is in check, only allow moves that block the check or capture the checking piece
+                if ((checkInfoStruct.checkers & (1ULL << rightCaptureSq)) || (checkInfoStruct.checkBlockSquares & (1ULL << rightCaptureSq)))
+                {
+                    Move move;
+                    move.from = static_cast<Square>(pawnSq);
+                    move.to = static_cast<Square>(rightCaptureSq);
+                    move.isCapture = true;
+                    moves.push_back(move);
+                }
+            }
+            else
+            {
+                Move move;
+                move.from = static_cast<Square>(pawnSq);
+                move.to = static_cast<Square>(rightCaptureSq);
+                move.isCapture = true;
+                moves.push_back(move);
             }
         }
     }
-    // Capture moves
 }
 
 void ChessGame::generateKnightMoves(std::vector<Move> &moves) const
@@ -470,6 +643,12 @@ void ChessGame::generateKnightMoves(std::vector<Move> &moves) const
 
         // Get all possible attacks for this knight
         uint64_t attacks = knightPseudoAttacks[knightSq] & ~(whiteTurn ? whitePieces : blackPieces);
+
+        if (checkInfoStruct.isInCheck)
+        {
+            // If the king is in check, only allow moves that block the check or capture the checking piece
+            attacks &= (checkInfoStruct.checkers | checkInfoStruct.checkBlockSquares);
+        }
 
         while (attacks)
         {
@@ -492,10 +671,23 @@ void ChessGame::generateRookMoves(std::vector<Move> &moves) const
 
     while (rookBitboard)
     {
-        rookSq = pop_lsb(rookBitboard); // Get the least significant bit (first rook)
+        rookSq = pop_lsb(rookBitboard);      // Get the least significant bit (first rook)
+        uint64_t from_bb = (1ULL << rookSq); // Bitboard for the current rook square
 
         // Get all possible attacks for this rook
         uint64_t attacks = getRookAttacks(occupiedBitboard, rookSq) & ~(whiteTurn ? whitePieces : blackPieces);
+
+        if (pinInfoStruct.pinned_pieces & from_bb)
+        {
+            // If the rook is pinned, only allow moves along the pin ray
+            attacks &= pinInfoStruct.pin_rays[rookSq];
+        }
+
+        if (checkInfoStruct.isInCheck)
+        {
+            // If the king is in check, only allow moves that block the check or capture the checking piece
+            attacks &= (checkInfoStruct.checkers | checkInfoStruct.checkBlockSquares);
+        }
 
         while (attacks)
         {
@@ -523,6 +715,19 @@ void ChessGame::generateBishopMoves(std::vector<Move> &moves) const
         // Get all possible attacks for this bishop
         uint64_t attacks = getBishopAttacks(occupiedBitboard, bishopSq) & ~(whiteTurn ? whitePieces : blackPieces);
 
+        uint64_t from_bb = (1ULL << bishopSq); // Bitboard for the current bishop square
+        if (pinInfoStruct.pinned_pieces & from_bb)
+        {
+            // If the bishop is pinned, only allow moves along the pin ray
+            attacks &= pinInfoStruct.pin_rays[bishopSq];
+        }
+
+        if (checkInfoStruct.isInCheck)
+        {
+            // If the king is in check, only allow moves that block the check or capture the checking piece
+            attacks &= (checkInfoStruct.checkers | checkInfoStruct.checkBlockSquares);
+        }
+
         while (attacks)
         {
             int destSq = pop_lsb(attacks); // Get the least significant bit (first attack)
@@ -548,6 +753,19 @@ void ChessGame::generateQueenMoves(std::vector<Move> &moves) const
 
         // Get all possible attacks for this queen
         uint64_t attacks = getQueenAttacks(occupiedBitboard, queenSq) & ~(whiteTurn ? whitePieces : blackPieces);
+
+        uint64_t from_bb = (1ULL << queenSq); // Bitboard for the current queen square
+        if (pinInfoStruct.pinned_pieces & from_bb)
+        {
+            // If the queen is pinned, only allow moves along the pin ray
+            attacks &= pinInfoStruct.pin_rays[queenSq];
+        }
+
+        if (checkInfoStruct.isInCheck)
+        {
+            // If the king is in check, only allow moves that block the check or capture the checking piece
+            attacks &= (checkInfoStruct.checkers | checkInfoStruct.checkBlockSquares);
+        }
 
         while (attacks)
         {
@@ -575,6 +793,12 @@ void ChessGame::generateKingMoves(std::vector<Move> &moves) const // Only legal 
         // Get all possible attacks for this king
         uint64_t attacks = kingPseudoAttacks[kingSq] & ~(whiteTurn ? whitePieces : blackPieces);
 
+        if (checkInfoStruct.isInCheck)
+        {
+            // If the king is in check, only allow moves that capture the checking piece
+            attacks &= (checkInfoStruct.checkers | ~checkInfoStruct.checkBlockSquares); // This is annoying I need a way to check if the piece that the king wants to attack is defended
+        }
+
         while (attacks)
         {
             int destSq = pop_lsb(attacks); // Get the least significant bit (first attack)
@@ -584,6 +808,7 @@ void ChessGame::generateKingMoves(std::vector<Move> &moves) const // Only legal 
             move.to = static_cast<Square>(destSq);
             move.isCapture = ((whiteTurn ? blackPieces : whitePieces) & (1ULL << destSq)) != 0; // Check if it's a capture
             moves.push_back(move);
+            // This is annoying I need a way to check if the piece that the king wants to attack is defended
         }
     }
 }
@@ -956,8 +1181,7 @@ void ChessGame::preworkPosition()
 
     // Reset the board to the initial position
     pinInfoStruct = calculatePins(occupiedBitboard, emptyBitboard, whiteTurn);
-    std::cout << "Pins calculated: " << std::endl;
-    for (int i = 0; i < 64; ++i)
+    /*for (int i = 0; i < 64; ++i)
     {
         if (pinInfoStruct.pinned_pieces & (1ULL << i))
         {
@@ -965,12 +1189,10 @@ void ChessGame::preworkPosition()
             std::cout << "Pin ray: ";
             printBitboard(pinInfoStruct.pin_rays[i]);
         }
-    }
-
+    }*/
     checkInfoStruct = calculateCheckInfo();
-    std::cout << "Check Info: " << std::endl;
     std::cout << "Is in check: " << (checkInfoStruct.isInCheck ? "Yes" : "No") << std::endl;
-    if (checkInfoStruct.isInCheck)
+    /*if (checkInfoStruct.isInCheck)
     {
         std::cout << "Checkers: " << std::endl;
         printBitboard(checkInfoStruct.checkers);
@@ -981,8 +1203,9 @@ void ChessGame::preworkPosition()
     else
     {
         std::cout << "No check detected." << std::endl;
-    }
-
+    }*/
+    generateMoves();
+    bitboardToBoardArray();
     return;
 }
 
@@ -996,9 +1219,6 @@ PinInfo ChessGame::calculatePins(uint64_t our_pieces, uint64_t enemy_pieces,
     // Check for rook/queen pins (orthogonal)
     uint64_t enemy_rooks_queens = is_white ? (pieceBitboards[7] | pieceBitboards[9] | pieceBitboards[10]) : // Black rooks | Black Bishops | Black queens
                                       (pieceBitboards[1] | pieceBitboards[3] | pieceBitboards[4]);          // White rooks | White bishops | White queens
-    std::cout << "Enemy rooks/queens bitboard: " << std::endl;
-    printBitboard(enemy_rooks_queens);
-    std::cout << "--------------------------" << std::endl;
     // For each enemy rook/queen
     while (enemy_rooks_queens)
     {
@@ -1008,9 +1228,6 @@ PinInfo ChessGame::calculatePins(uint64_t our_pieces, uint64_t enemy_pieces,
         uint64_t ray = getRayBetween(enemy_square, king_square);
         if (!ray)
             continue; // Not on same rank/file
-        std::cout << "Ray Between: " << std::endl;
-        printBitboard(ray);
-        std::cout << "--------------------------" << std::endl;
         // Count our pieces on this ray
         uint64_t our_pieces_on_ray = ray & our_pieces;
         if (__builtin_popcountll(our_pieces_on_ray) == 1)
@@ -1155,4 +1372,27 @@ CheckInfo ChessGame::calculateCheckInfo()
     }
 
     return info;
+}
+
+void ChessGame::bitboardToBoardArray()
+{
+    // Convert the bitboard representation to a 2D array for easier visualization
+    for (int i = 0; i < 8; i++)
+    {
+        for (int j = 0; j < 8; j++)
+        {
+            boardArray[i][j] = Piece::e; // Initialize the board array with empty squares
+        }
+    }
+    for (int i = 0; i < 12; i++)
+    {
+        uint64_t bitboard = pieceBitboards[i];
+        for (int j = 0; j < 64; j++)
+        {
+            if (bitboard & (1ULL << j))
+            {
+                boardArray[j / 8][j % 8] = static_cast<Piece>(i + 1); // Store the piece type in the board array
+            }
+        }
+    }
 }

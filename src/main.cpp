@@ -28,10 +28,11 @@ int main(int argc, char *argv[])
         return 1;
     }
     // Check if the color argument is valid
+    int playerColor = 0; // Default to white
     if (game_mode == 1)
     {
-        int color = std::stoi(argv[2]);
-        if (color < 0 || color > 1)
+        int playerColor = std::stoi(argv[2]);
+        if (playerColor < 0 || playerColor > 1)
         {
             std::cerr << "Invalid color. Use 0 for white or 1 for black." << std::endl;
             return 1;
@@ -41,19 +42,20 @@ int main(int argc, char *argv[])
     // Initialize game variables based on the provided arguments
 
     // Print a message indicating the game mode and color
-    std::cout << "Game mode: " << (game_mode == 0 ? "Local" : "Vs Bot") << std::endl; // (In a real game, you would initialize the game state here)
+    std::cout << "Game mode: " << (game_mode == 0 ? "Local" : "Vs Bot") << std::endl;
+
     if (game_mode == 1)
     {
-        std::cout << "Color: " << (std::stoi(argv[2]) == 0 ? "White" : "Black") << std::endl;
+        std::cout << "Color: " << (playerColor) << std::endl;
     }
 
     const std::string defaultFEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-    const std::string testingFEN = "rnbq1bnr/pppppppp/3Nk3/3nnn2/8/1B2R2Q/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+    const std::string testingFEN = "rnbq1bnr/pppppppp/4kq2/8/3B4/1P2P2Q/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
     // Initialize the chess game
     ChessGame game;
     game.parseFEN(testingFEN); // Use the testing FEN for demonstration purposes
-    game.printBoard(true);
+    // game.printBoard(true);
     game.preworkPosition();
     game.generateMoves();
 
@@ -62,7 +64,7 @@ int main(int argc, char *argv[])
         game.printBoard(false);
         std::string move;
         std::cout << "Current turn: " << (game.getCurrentTurn() == 0 ? "White" : "Black") << std::endl;
-        if (game_mode == 1 && game.getCurrentTurn() == 1)
+        if (game_mode == 1 && game.getCurrentTurn() != playerColor)
         {
             // Here you would implement the bot's move logic
             // For now, we will just simulate a bot move

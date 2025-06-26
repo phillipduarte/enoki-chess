@@ -222,8 +222,8 @@ private:
     uint64_t kingPseudoAttacks[64];
     void initializeKingAttacks();
 
-    bool isValidMove(const std::string &move) const;
-    void applyMove(const std::string &move);
+    bool isValidMove(const ChessGame::Move &move) const;
+    void applyMove(const Move &move);
 
     void resetBoard();
 
@@ -276,6 +276,8 @@ private:
 
     CheckInfo calculateCheckInfo();
 
+    mutable std::vector<Move> movesVector;
+
     void generatePawnMoves(std::vector<Move> &moves) const;
     void generateKnightMoves(std::vector<Move> &moves) const;
     void generateBishopMoves(std::vector<Move> &moves) const;
@@ -283,6 +285,10 @@ private:
     void generateQueenMoves(std::vector<Move> &moves) const;
     void generateKingMoves(std::vector<Move> &moves) const;
     void generateCastlingMoves(std::vector<Move> &moves) const;
+
+    Piece getPieceAtSquareFromBB(Square square) const;
+
+    void bitboardToBoardArray();
 };
 
 #endif // CHESS_H
