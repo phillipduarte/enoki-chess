@@ -128,6 +128,14 @@ public:
         bool isCapture;
         bool isEnPassant;
         bool isCastling;
+
+        bool operator==(const Move &other) const
+        {
+            return from == other.from &&
+                   to == other.to &&
+                   isCapture == other.isCapture &&
+                   isCastling == other.isCastling;
+        }
     };
 
     ChessGame();
@@ -193,6 +201,9 @@ private:
     int halfmoveClock = 0;  // Halfmove clock for the fifty-move rule
     int fullmoveNumber = 1; // Fullmove number
 
+    bool gameOver = false;  // Flag to indicate if the game is over
+    bool whiteWins = false; // Flag to indicate if white has won
+
     // Set up constants for the bitboard representation
     uint64_t rankConst[8] = {
         0x00000000000000FF,
@@ -222,7 +233,7 @@ private:
     uint64_t kingPseudoAttacks[64];
     void initializeKingAttacks();
 
-    bool isValidMove(const ChessGame::Move &move) const;
+    Move getMove(const ChessGame::Move &move) const;
     void applyMove(const Move &move);
 
     void resetBoard();

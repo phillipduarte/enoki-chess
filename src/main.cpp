@@ -3,6 +3,8 @@
 #include <vector>
 
 #include "./chess.h"
+#include "./engines/Engine.h"
+#include "./engines/random.cpp"
 
 // Second argument is the game mode; 0 -> local, 1 -> vs bot
 // Third argument is the color; 0 -> white, 1 -> black; Only used in vs bot mode
@@ -43,10 +45,14 @@ int main(int argc, char *argv[])
 
     // Print a message indicating the game mode and color
     std::cout << "Game mode: " << (game_mode == 0 ? "Local" : "Vs Bot") << std::endl;
+    Engine *engine = nullptr;
 
     if (game_mode == 1)
     {
         std::cout << "Color: " << (playerColor) << std::endl;
+        // Initialize the engine for bot play
+        engine = new RandomEngine();
+        // You can replace RandomEngine with any other engine implementation
     }
 
     const std::string defaultFEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
@@ -54,10 +60,15 @@ int main(int argc, char *argv[])
 
     // Initialize the chess game
     ChessGame game;
-    game.parseFEN(testingFEN); // Use the testing FEN for demonstration purposes
+
+    if (game_mode == 1)
+    {
+        engine->initialize(&game);
+    }
+
+    game.parseFEN(defaultFEN); // Use the testing FEN for demonstration purposes
     // game.printBoard(true);
     game.preworkPosition();
-    game.generateMoves();
 
     while (!game.isGameOver())
     {
@@ -70,7 +81,8 @@ int main(int argc, char *argv[])
             // For now, we will just simulate a bot move
             std::cout << "Bot is making a move..." << std::endl;
             // Simulate a random move or a predefined move
-            move = "e2e4"; // Example of a bot move
+            ChessGame::Move moveStruct = engine->getBestMove(1); // Get the best move from the
+            move = ChessGame::getSquareName(moveStruct.from) + ChessGame::getSquareName(moveStruct.to);
         }
         else
         {
@@ -102,8 +114,6 @@ int main(int argc, char *argv[])
             moveStruct.from = static_cast<Square>(sq);
             moveStruct.to = static_cast<Square>(destSq);
         }
-
-        game.generateMoves();
 
         if (move == "exit")
         {

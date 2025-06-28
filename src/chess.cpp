@@ -90,15 +90,15 @@ bool ChessGame::makeMove(const std::string &moveStr)
     Move move = {};
     move.from = static_cast<Square>(ChessGame::parseSquare(moveStr.substr(0, 2)));
     move.to = static_cast<Square>(ChessGame::parseSquare(moveStr.substr(2, 2)));
-    if (!isValidMove(move))
+    if (getMove(move) == Move{})
     {
-        return false;
+        return false; // Move not found in our moves vector
     }
-    applyMove(move);
+    applyMove(getMove(move));
     return true;
 }
 
-bool ChessGame::isValidMove(const ChessGame::Move &move) const
+ChessGame::Move ChessGame::getMove(const ChessGame::Move &move) const
 {
     // Check if move is in our moves vector
     for (const Move &m : movesVector)
@@ -106,10 +106,10 @@ bool ChessGame::isValidMove(const ChessGame::Move &move) const
         if (m.from == move.from &&
             m.to == move.to)
         {
-            return true;
+            return m;
         }
     }
-    return false;
+    return Move{}; // Return an empty move if not found
 }
 
 void ChessGame::applyMove(const ChessGame::Move &move)
@@ -456,7 +456,7 @@ std::vector<ChessGame::Move> ChessGame::generateMoves() const
     // Castling moves
     if (!checkInfoStruct.isInCheck)
     {
-        generateCastlingMoves(moves);
+        // generateCastlingMoves(moves);
     }
 
     movesVector = moves; // Store the generated moves in the moves vector
@@ -475,8 +475,8 @@ void ChessGame::generatePawnMoves(std::vector<Move> &moves) const
 
         // Forward move
         int forwardSq = pawnSq + (whiteTurn ? 8 : -8);
-        if ((whiteTurn && forwardSq < 64 && boardArray[forwardSq / 8][forwardSq % 8] == Piece::e) ||
-            (!whiteTurn && forwardSq >= 0 && boardArray[forwardSq / 8][forwardSq % 8] == Piece::e))
+        if ((whiteTurn && forwardSq < 64 && (emptyBitboard & (1ULL << forwardSq))) ||
+            (!whiteTurn && forwardSq >= 0 && (emptyBitboard & (1ULL << forwardSq))))
         {
             if (pinInfoStruct.pinned_pieces & (1ULL << pawnSq))
             {
@@ -513,10 +513,10 @@ void ChessGame::generatePawnMoves(std::vector<Move> &moves) const
 
             // Double forward move
             int doubleForwardSq = forwardSq + (whiteTurn ? 8 : -8);
-            if ((whiteTurn && doubleForwardSq < 64 && boardArray[doubleForwardSq / 8][doubleForwardSq % 8] == Piece::e &&
+            if ((whiteTurn && doubleForwardSq < 64 && (emptyBitboard & (1ULL << doubleForwardSq)) &&
                  (pawnSq / 8 == (whiteTurn ? 1 : 6))) ||
-                (!whiteTurn && doubleForwardSq >= 0 && boardArray[doubleForwardSq / 8][doubleForwardSq % 8] == Piece::e &&
-                 (pawnSq / 8 == (whiteTurn ? 6 : 1))))
+                (!whiteTurn && doubleForwardSq >= 0 && (emptyBitboard & (1ULL << doubleForwardSq)) &&
+                 (pawnSq / 8 == (whiteTurn ? 1 : 6))))
             {
                 if (pinInfoStruct.pinned_pieces & (1ULL << pawnSq))
                 {
@@ -1079,7 +1079,11 @@ uint64_t ChessGame::getPositiveRayAttacks(uint64_t occupied, Direction dir8, uns
 {
     uint64_t attacks = rayAttacks[square][static_cast<int>(dir8)];
     uint64_t blocker = attacks & occupied;
-    int firstBlockingSquare = blocker ? __builtin_ctzll(blocker) : 0;
+    int firstBlockingSquare = blocker ? __builtin_ctzll(blocker) : -1;
+    if (firstBlockingSquare == -1)
+    {
+        return attacks; // No blockers, return full ray attacks
+    }
     attacks ^= rayAttacks[firstBlockingSquare][static_cast<int>(dir8)];
     // std::cout << "Positive ray attacks for square " << square << " in direction " << //static_cast<int>(dir8) << ": " << std::endl;
     // printBitboard(attacks);
@@ -1091,7 +1095,11 @@ uint64_t ChessGame::getNegativeRayAttacks(uint64_t occupied, Direction dir8, uns
 {
     uint64_t attacks = rayAttacks[square][static_cast<int>(dir8)];
     uint64_t blocker = attacks & occupied;
-    int firstBlockingSquare = blocker ? (63 - __builtin_clzll(blocker)) : 0;
+    int firstBlockingSquare = blocker ? (63 - __builtin_clzll(blocker)) : -1;
+    if (firstBlockingSquare == -1)
+    {
+        return attacks; // No blockers, return full ray attacks
+    }
     attacks ^= rayAttacks[firstBlockingSquare][static_cast<int>(dir8)];
     // std::cout << "Negative ray attacks for square " << square << " in direction " << static_cast<int>(dir8) << ": " << std::endl;
     // printBitboard(attacks);
@@ -1205,6 +1213,11 @@ void ChessGame::preworkPosition()
         std::cout << "No check detected." << std::endl;
     }*/
     generateMoves();
+    if (movesVector.empty())
+    {
+        gameOver = true; // No legal moves available, game over
+        std::cout << "Game over: No legal moves available." << std::endl;
+    }
     bitboardToBoardArray();
     return;
 }
