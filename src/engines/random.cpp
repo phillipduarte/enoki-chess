@@ -7,9 +7,9 @@ public:
   ~RandomEngine() override = default;
 
   // Initialize the engine with the chessboard state
-  void initialize(const ChessGame &game) override
+  void initialize(ChessGame *game) override
   {
-    this->game = game; // Store the game state
+    this->gamePtr = game; // Store the game state
   }
 
   // Evaluate the current position (dummy implementation)
@@ -22,7 +22,7 @@ public:
   ChessGame::Move getBestMove(int depth) override
   {
     // Generate all possible moves and return a random one
-    auto moves = this->game.generateMoves();
+    auto moves = this->gamePtr->generateMoves();
     if (moves.empty())
       return ChessGame::Move{}; // Return an empty move if no moves available
 
@@ -31,5 +31,5 @@ public:
   }
 
 private:
-  ChessGame game;
+  ChessGame *gamePtr = nullptr; // Pointer to the chess game state
 };

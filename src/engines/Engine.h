@@ -11,7 +11,7 @@ public:
   virtual ~Engine() = default;
 
   // Initialize the engine with the chessboard state
-  virtual void initialize(const ChessGame &game) = 0;
+  virtual void initialize(ChessGame *game) = 0;
 
   // Generate moves for the current position
   // virtual std::vector<Move> generateMoves() = 0;
