@@ -21,6 +21,7 @@ public:
   // Get a random move from the current position
   ChessGame::Move getBestMove(int depth) override
   {
+    srand(time(NULL));
     // Generate all possible moves and return a random one
     auto moves = this->gamePtr->generateMoves();
     if (moves.empty())

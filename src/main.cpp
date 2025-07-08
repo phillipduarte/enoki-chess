@@ -5,6 +5,7 @@
 #include "./chess.h"
 #include "./engines/Engine.h"
 #include "./engines/random.cpp"
+#include "./engines/enoki.cpp"
 
 // Second argument is the game mode; 0 -> local, 1 -> vs bot
 // Third argument is the color; 0 -> white, 1 -> black; Only used in vs bot mode
@@ -51,7 +52,7 @@ int main(int argc, char *argv[])
     {
         std::cout << "Color: " << (playerColor) << std::endl;
         // Initialize the engine for bot play
-        engine = new RandomEngine();
+        engine = new EnokiEngine();
         // You can replace RandomEngine with any other engine implementation
     }
 
@@ -82,8 +83,9 @@ int main(int argc, char *argv[])
             // For now, we will just simulate a bot move
             std::cout << "Bot is making a move..." << std::endl;
             // Simulate a random move or a predefined move
-            ChessGame::Move moveStruct = engine->getBestMove(1); // Get the best move from the
+            ChessGame::Move moveStruct = engine->getBestMove(3); // Get the best move from the
             move = ChessGame::getSquareName(moveStruct.from) + ChessGame::getSquareName(moveStruct.to);
+            game.generateMoves(); // Generate moves after the bot's move
         }
         else
         {

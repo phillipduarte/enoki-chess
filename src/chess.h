@@ -164,11 +164,23 @@ public:
     {
         return whiteTurn ? 0 : 1; // 0 for white, 1 for black
     }
+
+    bool isWhiteTurn() const
+    {
+        return whiteTurn;
+    }
     void printBoardWithMovesByPiece(Square square) const;
     static std::string getSquareName(Square square);
     void preworkPosition();
 
-    void undoMove(Move &move);
+    void undoMove(const Move &move);
+
+    uint64_t *getPieceBitboards()
+    {
+        return pieceBitboards;
+    }
+
+    void applyMove(const Move &move);
 
 private:
     // TODO: Define your board representation here (e.g., array or vector)
@@ -245,7 +257,6 @@ private:
     void initializeKingAttacks();
 
     Move getMove(const ChessGame::Move &move) const;
-    void applyMove(const Move &move);
 
     void resetBoard();
 

@@ -27,6 +27,9 @@ public:
 
   // Get the best move for the current position
   virtual ChessGame::Move getBestMove(int depth) = 0;
+
+protected:
+  ChessGame *gamePtr = nullptr; // Pointer to the chess game state
 };
 
 #endif // ENGINE_H

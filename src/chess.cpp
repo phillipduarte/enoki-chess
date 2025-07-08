@@ -1451,10 +1451,6 @@ void ChessGame::generateOpponentAttacks() const
         opponentAttacks |= knightPseudoAttacks[knightSq] & ~(whiteTurn ? blackPieces : whitePieces);
     }
 
-    std::cout << "Opponent attacks after knight generation: " << std::endl;
-    printBitboard(opponentAttacks);
-    std::cout << "-------------------------" << std::endl;
-
     // Rook Attacks
     uint64_t rookBitboard = pieceBitboards[whiteTurn ? 7 : 1]; // Assuming 7 is the index for black rooks and 1 for white rooks
     int rookSq;
@@ -1465,10 +1461,6 @@ void ChessGame::generateOpponentAttacks() const
         opponentAttacks |= attacks & ~(whiteTurn ? blackPieces : whitePieces); // If it's white turn, we are generating black attacks so we can go anywhere BUT black pieces
     }
 
-    std::cout << "Opponent attacks after rook generation: " << std::endl;
-    printBitboard(opponentAttacks);
-    std::cout << "-------------------------" << std::endl;
-
     // Bishop Attacks
     uint64_t bishopBitboard = pieceBitboards[whiteTurn ? 9 : 3]; // Assuming 9 is the index for black bishops and 3 for white bishops
     int bishopSq;
@@ -1478,10 +1470,6 @@ void ChessGame::generateOpponentAttacks() const
         uint64_t attacks = getBishopAttacks(occupiedBitboard, bishopSq);
         opponentAttacks |= attacks; // If it's white turn, we are generating black attacks so we can go anywhere BUT black pieces
     }
-
-    std::cout << "Opponent attacks after bishop generation: " << std::endl;
-    printBitboard(opponentAttacks);
-    std::cout << "-------------------------" << std::endl;
 
     // Queen Attacks
     uint64_t queenBitboard = pieceBitboards[whiteTurn ? 10 : 4]; // Assuming 10 is the index for black queens and 4 for white queens
@@ -1525,7 +1513,7 @@ void ChessGame::generateOpponentAttacks() const
     return;
 }
 
-void ChessGame::undoMove(Move &move)
+void ChessGame::undoMove(const ChessGame::Move &move)
 {
     // Undo the move by restoring the previous state
     // This will depend on how you store the game state and history
