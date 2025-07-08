@@ -57,6 +57,7 @@ int main(int argc, char *argv[])
 
     const std::string defaultFEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
     const std::string testingFEN = "rnbq1bnr/pppppppp/4kq2/8/3B4/1P2P2Q/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+    const std::string mateInOneFEN = "rnb1k1nr/pppp1ppp/5q2/2b1p3/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"; // Example FEN for a mate in one position
 
     // Initialize the chess game
     ChessGame game;
@@ -130,5 +131,6 @@ int main(int argc, char *argv[])
         }
     }
 
+    std::cout << "Game over!" << std::endl;
     return 0;
 }

@@ -300,6 +300,12 @@ private:
     Piece getPieceAtSquareFromBB(Square square) const;
 
     void bitboardToBoardArray();
+
+    mutable uint64_t opponentAttacks; // Attacks that can specifically attack the king
+
+    bool isSquareAttacked(Square square) const;
+
+    void generateOpponentAttacks() const;
 };
 
 #endif // CHESS_H

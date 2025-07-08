@@ -161,7 +161,7 @@ Piece ChessGame::getPieceAtSquareFromBB(Square square) const
 bool ChessGame::isGameOver() const
 {
     // TODO: Check for checkmate, stalemate, etc.
-    return false;
+    return gameOver;
 }
 
 // TODO: Add error handling for invalid FEN strings
@@ -440,6 +440,14 @@ std::vector<ChessGame::Move> ChessGame::generateMoves() const
 
     // TODO: Pawn promotion moves
 
+    std::cout << "About to generate opponent attacks" << std::endl;
+
+    opponentAttacks = 0; // Reset opponent attacks before generating new ones
+
+    generateOpponentAttacks(); // Generate opponent attacks to check for checks
+
+    std::cout << "Opponent attacks generated" << std::endl;
+
     generateKingMoves(moves); // Generate king moves first to check for checks
 
     if (__builtin_popcountll(checkInfoStruct.checkers) >= 2) // King is in double check -> only king moves
@@ -555,13 +563,15 @@ void ChessGame::generatePawnMoves(std::vector<Move> &moves) const
 
         // Capture moves
         int leftCaptureSq = pawnSq + (whiteTurn ? 7 : -9); // Left capture square
-        if ((whiteTurn && leftCaptureSq < 64 && (1ULL << leftCaptureSq) & blackPieces) ||
-            (!whiteTurn && leftCaptureSq >= 0 && (1ULL << leftCaptureSq) & whitePieces))
+        if (pawnSq % 8 != 0 && ((whiteTurn && leftCaptureSq < 64 && (1ULL << leftCaptureSq) & blackPieces) ||
+                                (!whiteTurn && leftCaptureSq >= 0 && (1ULL << leftCaptureSq) & whitePieces)))
         {
-            if (pinInfoStruct.pinned_pieces & (1ULL << pawnSq))
+            if (checkInfoStruct.isInCheck)
             {
-                // If the pawn is pinned, it can only capture if the pin ray allows it
-                if ((pinInfoStruct.pin_rays[pawnSq] & (1ULL << leftCaptureSq)))
+                // If the king is in check, only allow moves that block the check or capture the checking piece
+                // And we also make sure that if the pawn is pinned, it can only capture if the pin ray allows it
+
+                if ((pinInfoStruct.pin_rays[pawnSq] & (1ULL << leftCaptureSq)) || (checkInfoStruct.checkers & (1ULL << leftCaptureSq)) || (checkInfoStruct.checkBlockSquares & (1ULL << leftCaptureSq)))
                 {
                     Move move;
                     move.from = static_cast<Square>(pawnSq);
@@ -570,10 +580,10 @@ void ChessGame::generatePawnMoves(std::vector<Move> &moves) const
                     moves.push_back(move);
                 }
             }
-            else if (checkInfoStruct.isInCheck)
+            else if (pinInfoStruct.pinned_pieces & (1ULL << pawnSq))
             {
-                // If the king is in check, only allow moves that block the check or capture the checking piece
-                if ((checkInfoStruct.checkers & (1ULL << leftCaptureSq)) || (checkInfoStruct.checkBlockSquares & (1ULL << leftCaptureSq)))
+                // If the pawn is pinned, it can only capture if the pin ray allows it
+                if ((pinInfoStruct.pin_rays[pawnSq] & (1ULL << leftCaptureSq)))
                 {
                     Move move;
                     move.from = static_cast<Square>(pawnSq);
@@ -592,8 +602,8 @@ void ChessGame::generatePawnMoves(std::vector<Move> &moves) const
             }
         }
         int rightCaptureSq = pawnSq + (whiteTurn ? 9 : -7);
-        if ((whiteTurn && rightCaptureSq < 64 && (1ULL << rightCaptureSq) & blackPieces) ||
-            (!whiteTurn && rightCaptureSq >= 0 && (1ULL << rightCaptureSq) & whitePieces))
+        if (pawnSq % 8 != 7 && ((whiteTurn && rightCaptureSq < 64 && (1ULL << rightCaptureSq) & blackPieces) ||
+                                (!whiteTurn && rightCaptureSq >= 0 && (1ULL << rightCaptureSq) & whitePieces)))
         {
             if (pinInfoStruct.pinned_pieces & (1ULL << pawnSq))
             {
@@ -803,12 +813,15 @@ void ChessGame::generateKingMoves(std::vector<Move> &moves) const // Only legal 
         {
             int destSq = pop_lsb(attacks); // Get the least significant bit (first attack)
 
-            Move move;
-            move.from = static_cast<Square>(kingSq);
-            move.to = static_cast<Square>(destSq);
-            move.isCapture = ((whiteTurn ? blackPieces : whitePieces) & (1ULL << destSq)) != 0; // Check if it's a capture
-            moves.push_back(move);
-            // This is annoying I need a way to check if the piece that the king wants to attack is defended
+            // Check if the destination square is attacked by opponent pieces
+            if (!(opponentAttacks & (1ULL << destSq)))
+            {
+                Move move;
+                move.from = static_cast<Square>(kingSq);
+                move.to = static_cast<Square>(destSq);
+                move.isCapture = ((whiteTurn ? blackPieces : whitePieces) & (1ULL << destSq)) != 0; // Check if it's a capture
+                moves.push_back(move);
+            }
         }
     }
 }
@@ -1296,13 +1309,12 @@ uint64_t ChessGame::getRayBetween(int from, int to) const
     if (direction > 0) // TODO: make this more efficient
     {
         ray = getPositiveRayAttacks(toSquareBitboard, static_cast<Direction>(direction), from);
-        pop_msb(ray);
+        // pop_msb(ray);
     }
     else
     {
         direction = -direction; // Convert to positive direction for calculations
         ray = getNegativeRayAttacks(toSquareBitboard, static_cast<Direction>(direction), from);
-        pop_lsb(ray); // Clear the least significant bit
     }
     // ray = (direction > 0) ? getPositiveRayAttacks(toSquareBitboard, static_cast<Direction>(direction), from)
     //                       : getNegativeRayAttacks(toSquareBitboard, static_cast<Direction>(-direction), from);
@@ -1408,4 +1420,102 @@ void ChessGame::bitboardToBoardArray()
             }
         }
     }
+}
+
+bool ChessGame::isSquareAttacked(Square square) const
+{
+    // Check if the square is attacked by the opponent
+    uint64_t squareBitboard = 1ULL << static_cast<int>(square);
+    return (opponentAttacks & squareBitboard) != 0;
+}
+
+void ChessGame::generateOpponentAttacks() const
+{
+    /*
+    We won't have to check for check since the opponent can't be in check
+    our turn. Also we don't have to check for pins since pinned pieces still
+    prevent the king from moving to a square that is attacked by the opponent.
+    */
+
+    // Knight Attacks
+    uint64_t knightBitboard = pieceBitboards[whiteTurn ? 8 : 2]; // Assuming 8 is the index for black knights and 2 for white knights
+    int knightSq;
+    while (knightBitboard)
+    {
+        knightSq = pop_lsb(knightBitboard); // Get the least significant bit (first knight)
+        opponentAttacks |= knightPseudoAttacks[knightSq] & ~(whiteTurn ? blackPieces : whitePieces);
+    }
+
+    std::cout << "Opponent attacks after knight generation: " << std::endl;
+    printBitboard(opponentAttacks);
+    std::cout << "-------------------------" << std::endl;
+
+    // Rook Attacks
+    uint64_t rookBitboard = pieceBitboards[whiteTurn ? 7 : 1]; // Assuming 7 is the index for black rooks and 1 for white rooks
+    int rookSq;
+    while (rookBitboard)
+    {
+        rookSq = pop_lsb(rookBitboard); // Get the least significant bit (first rook)
+        uint64_t attacks = getRookAttacks(occupiedBitboard, rookSq);
+        opponentAttacks |= attacks & ~(whiteTurn ? blackPieces : whitePieces); // If it's white turn, we are generating black attacks so we can go anywhere BUT black pieces
+    }
+
+    std::cout << "Opponent attacks after rook generation: " << std::endl;
+    printBitboard(opponentAttacks);
+    std::cout << "-------------------------" << std::endl;
+
+    // Bishop Attacks
+    uint64_t bishopBitboard = pieceBitboards[whiteTurn ? 9 : 3]; // Assuming 9 is the index for black bishops and 3 for white bishops
+    int bishopSq;
+    while (bishopBitboard)
+    {
+        bishopSq = pop_lsb(bishopBitboard); // Get the least significant bit (first bishop)
+        uint64_t attacks = getBishopAttacks(occupiedBitboard, bishopSq);
+        opponentAttacks |= attacks; // If it's white turn, we are generating black attacks so we can go anywhere BUT black pieces
+    }
+
+    std::cout << "Opponent attacks after bishop generation: " << std::endl;
+    printBitboard(opponentAttacks);
+    std::cout << "-------------------------" << std::endl;
+
+    // Queen Attacks
+    uint64_t queenBitboard = pieceBitboards[whiteTurn ? 10 : 4]; // Assuming 10 is the index for black queens and 4 for white queens
+    int queenSq;
+    while (queenBitboard)
+    {
+        queenSq = pop_lsb(queenBitboard); // Get the least significant bit (first queen)
+        uint64_t attacks = getQueenAttacks(occupiedBitboard, queenSq);
+        opponentAttacks |= attacks & ~(whiteTurn ? blackPieces : whitePieces); // If it's white turn, we are generating black attacks so we can go anywhere BUT black pieces
+    }
+
+    // King Attacks
+    uint64_t kingBitboard = pieceBitboards[whiteTurn ? 11 : 5]; // Assuming 11 is the index for black kings and 5 for white kings
+    int kingSq;
+    while (kingBitboard)
+    {
+        kingSq = pop_lsb(kingBitboard);                                                          // Get the least significant bit (first king)
+        uint64_t attacks = kingPseudoAttacks[kingSq] & ~(whiteTurn ? blackPieces : whitePieces); // King attacks can go anywhere except on the opponent's pieces
+        opponentAttacks |= attacks;                                                              // Add king attacks to opponent attacks
+    }
+
+    // Pawn Attacks
+    uint64_t pawnBitboard = pieceBitboards[whiteTurn ? 6 : 0]; // Assuming 6 is the index for black pawns and 0 for white pawns
+    uint64_t leftPawnAttacks;
+    uint64_t rightPawnAttacks;
+    if (whiteTurn)
+    {
+        // Calculate for black pawns attacking white squares
+        leftPawnAttacks = (pawnBitboard & ~fileConst[0]) >> 9;  // Left attacks
+        rightPawnAttacks = (pawnBitboard & ~fileConst[7]) >> 7; // Right attacks
+    }
+    else
+    {
+        // Calculate for white pawns attacking black squares
+        leftPawnAttacks = (pawnBitboard & ~fileConst[7]) << 7;  // Left attacks
+        rightPawnAttacks = (pawnBitboard & ~fileConst[0]) << 9; // Right attacks
+    }
+    // Combine pawn attacks
+    opponentAttacks |= leftPawnAttacks | rightPawnAttacks;
+
+    return;
 }
