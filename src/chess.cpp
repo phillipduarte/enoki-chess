@@ -114,6 +114,10 @@ ChessGame::Move ChessGame::getMove(const ChessGame::Move &move) const
 
 void ChessGame::applyMove(const ChessGame::Move &move)
 {
+    StateInfo *newState = new StateInfo();
+    newState->previousState = currentState; // Link to the previous state
+    currentState = newState;
+
     uint64_t fromBB = 1ULL << static_cast<int>(move.from);
     uint64_t toBB = 1ULL << static_cast<int>(move.to);
 
@@ -136,6 +140,7 @@ void ChessGame::applyMove(const ChessGame::Move &move)
         {
             pieceBitboards[static_cast<int>(capturedPiece) - 1] &= ~toBB;
         }
+        currentState->capturedPiece = capturedPiece; // Store captured piece
     }
 
     // Add piece to destination square
@@ -1516,6 +1521,49 @@ void ChessGame::generateOpponentAttacks() const
     }
     // Combine pawn attacks
     opponentAttacks |= leftPawnAttacks | rightPawnAttacks;
+
+    return;
+}
+
+void ChessGame::undoMove(Move &move)
+{
+    // Undo the move by restoring the previous state
+    // This will depend on how you store the game state and history
+    // For example, you might have a stack of previous states to pop from
+    // or you might need to restore specific piece positions based on the move
+    // For now, this is just a placeholder function
+    std::cout << "Undoing move from " << getSquareName(move.from) << " to " << getSquareName(move.to) << std::endl;
+
+    uint64_t fromBB = 1ULL << static_cast<int>(move.from);
+    uint64_t toBB = 1ULL << static_cast<int>(move.to);
+
+    // Find piece at square
+    Piece piece = getPieceAtSquareFromBB(move.to);
+    if (piece == Piece::e)
+    {
+        std::cerr << "No piece at dest square." << std::endl;
+        return; // No piece to move
+    }
+
+    // Remove piece from dest square
+    pieceBitboards[static_cast<int>(piece) - 1] &= ~toBB;
+
+    if (move.isCapture)
+    {
+        // If it's a capture, remove the captured piece from its bitboard
+        Piece capturedPiece = currentState->capturedPiece;
+        if (capturedPiece != Piece::e)
+        {
+            pieceBitboards[static_cast<int>(capturedPiece) - 1] |= toBB;
+        }
+    }
+
+    // Add piece back to source square
+    pieceBitboards[static_cast<int>(piece) - 1] |= fromBB;
+
+    whiteTurn = !whiteTurn;
+
+    currentState = currentState->previousState; // Move back to the previous state
 
     return;
 }

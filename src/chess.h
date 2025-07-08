@@ -116,6 +116,15 @@ struct CheckInfo
     uint64_t checkBlockSquares; // Squares that can block all checks
 };
 
+struct StateInfo
+{
+    PinInfo pinInfo;     // Information about pinned pieces
+    CheckInfo checkInfo; // Information about checks
+    StateInfo *previousState;
+    Piece capturedPiece;    // Piece that was captured in the last move
+    Square enPassantSquare; // Square that was en passant captured
+};
+
 class ChessGame
 {
 public:
@@ -158,6 +167,8 @@ public:
     void printBoardWithMovesByPiece(Square square) const;
     static std::string getSquareName(Square square);
     void preworkPosition();
+
+    void undoMove(Move &move);
 
 private:
     // TODO: Define your board representation here (e.g., array or vector)
@@ -306,6 +317,8 @@ private:
     bool isSquareAttacked(Square square) const;
 
     void generateOpponentAttacks() const;
+
+    StateInfo *currentState = nullptr; // Pointer to the current state info
 };
 
 #endif // CHESS_H
