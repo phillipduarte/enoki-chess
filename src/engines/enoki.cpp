@@ -18,6 +18,10 @@ public:
   {
     // Make a simple evaluation based on material count
     int score = 0;
+    if (this->gamePtr->isGameOver())
+    {
+      return this->gamePtr->isWhiteWins() ? INT_MAX : INT_MIN; // Return max/min score based on winner
+    }
     for (int i = 0; i < 12; ++i) // Loop through all piece types
     {
       uint64_t bitboard = this->gamePtr->getPieceBitboards()[i];
@@ -73,81 +77,87 @@ public:
   ChessGame::Move getBestMove(int depth) override
   {
     srand(time(NULL));
-    // Generate all possible moves and return a random one
     auto moves = this->gamePtr->generateMoves();
     if (moves.empty())
-      return ChessGame::Move{}; // Return an empty move if no moves available
+      return ChessGame::Move{};
+
     if (this->gamePtr->isWhiteTurn())
     {
-      // If it's white's turn, we want to maximize the score
+      // White wants to maximize
       int bestScore = INT_MIN;
       ChessGame::Move bestMove;
       for (const auto &move : moves)
       {
         this->gamePtr->applyMove(move);
-        int score = maxi(depth - 1);
+        int score = mini(depth - 1, bestScore, INT_MAX); // Alpha = bestScore, Beta = INT_MAX
+        this->gamePtr->undoMove(move);
+
         if (score > bestScore)
         {
           bestScore = score;
           bestMove = move;
         }
-        this->gamePtr->undoMove(move);
       }
       return bestMove;
     }
     else
     {
-      // If it's black's turn, we want to minimize the score
+      // Black wants to minimize
       int bestScore = INT_MAX;
       ChessGame::Move bestMove;
       for (const auto &move : moves)
       {
         this->gamePtr->applyMove(move);
-        int score = mini(depth - 1);
+        int score = maxi(depth - 1, INT_MIN, bestScore); // Alpha = INT_MIN, Beta = bestScore
+        this->gamePtr->undoMove(move);
+
         if (score < bestScore)
         {
           bestScore = score;
           bestMove = move;
         }
-        this->gamePtr->undoMove(move);
       }
       return bestMove;
     }
   }
 
-  int maxi(int depth)
+  int maxi(int depth, int alpha, int beta)
   {
     if (depth <= 0)
       return evaluatePosition();
-    int max = INT_MIN;
-    int score;
+
     for (const auto &move : this->gamePtr->generateMoves())
     {
       this->gamePtr->applyMove(move);
-      score = mini(depth - 1);
+      int score = mini(depth - 1, alpha, beta);
       this->gamePtr->undoMove(move);
-      if (score > max)
-        max = score;
+
+      if (score > alpha)
+        alpha = score;
+
+      if (alpha >= beta)
+        break; // Beta cutoff
     }
-    return max;
+    return alpha;
   }
 
-  int mini(int depth)
+  int mini(int depth, int alpha, int beta)
   {
     if (depth <= 0)
-      return -evaluatePosition();
-    int min = INT_MAX;
-    int score;
+      return evaluatePosition();
+
     for (const auto &move : this->gamePtr->generateMoves())
     {
       this->gamePtr->applyMove(move);
-      score = maxi(depth - 1);
+      int score = maxi(depth - 1, alpha, beta);
       this->gamePtr->undoMove(move);
-      if (score < min)
-      {
-        min = score;
-      }
+
+      if (score < beta)
+        beta = score;
+
+      if (alpha >= beta)
+        break; // Alpha cutoff
     }
-    return min;
+    return beta;
   }
 };
