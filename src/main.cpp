@@ -59,6 +59,7 @@ int main(int argc, char *argv[])
     const std::string defaultFEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
     const std::string testingFEN = "rnbq1bnr/pppppppp/4kq2/8/3B4/1P2P2Q/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
     const std::string mateInOneFEN = "rnb1k1nr/pppp1ppp/5q2/2b1p3/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"; // Example FEN for a mate in one position
+    const std::string pinBugFEN = "rnbqkbnr/pppp1ppp/8/4p3/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
     // Initialize the chess game
     ChessGame game;
@@ -68,7 +69,7 @@ int main(int argc, char *argv[])
         engine->initialize(&game);
     }
 
-    game.parseFEN(defaultFEN); // Use the testing FEN for demonstration purposes
+    game.parseFEN(pinBugFEN); // Use the testing FEN for demonstration purposes
     // game.printBoard(true);
     game.preworkPosition();
 
@@ -83,7 +84,7 @@ int main(int argc, char *argv[])
             // For now, we will just simulate a bot move
             std::cout << "Bot is making a move..." << std::endl;
             // Simulate a random move or a predefined move
-            ChessGame::Move moveStruct = engine->getBestMove(3); // Get the best move from the
+            ChessGame::Move moveStruct = engine->getBestMove(4); // Get the best move from the
             move = ChessGame::getSquareName(moveStruct.from) + ChessGame::getSquareName(moveStruct.to);
             game.generateMoves(); // Generate moves after the bot's move
         }

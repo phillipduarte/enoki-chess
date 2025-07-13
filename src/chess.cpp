@@ -12,10 +12,13 @@ ChessGame::ChessGame() : whiteTurn(true)
     initializeKingAttacks();
     initializeRayAttacks();
     movesVector = std::vector<Move>();
+    movesPlayed = std::vector<Move>();
+    currentState = new StateInfo();
 }
 
-void ChessGame::printBoard(bool withBitboards) const
+void ChessGame::printBoard(bool withBitboards)
 {
+    bitboardToBoardArray();
     // Print the chessboard to the console
     std::cout << "Chessboard:" << std::endl;
     for (int row = 7; row >= 0; --row)
@@ -145,6 +148,8 @@ void ChessGame::applyMove(const ChessGame::Move &move)
 
     // Add piece to destination square
     pieceBitboards[static_cast<int>(piece) - 1] |= toBB;
+
+    movesPlayed.push_back(move); // Store the move in the history
 
     whiteTurn = !whiteTurn;
     preworkPosition(); // Update the board state after the move
@@ -1199,11 +1204,11 @@ void ChessGame::preworkPosition()
     occupiedBitboard = whitePieces | blackPieces;
     emptyBitboard = ~occupiedBitboard;
     // Precompute knight and king attacks
-    initializeKnightAttacks();
-    initializeKingAttacks();
+    // initializeKnightAttacks();
+    // initializeKingAttacks();
 
     // Initialize ray attacks for sliding pieces
-    initializeRayAttacks();
+    // initializeRayAttacks();
 
     // Reset the board to the initial position
     pinInfoStruct = calculatePins(occupiedBitboard, emptyBitboard, whiteTurn);
@@ -1234,9 +1239,12 @@ void ChessGame::preworkPosition()
     if (movesVector.empty())
     {
         gameOver = true; // No legal moves available, game over
+        bitboardToBoardArray();
+        whiteWins = !whiteTurn; // If it's white's turn and no moves, black wins
         std::cout << "Game over: No legal moves available." << std::endl;
     }
-    bitboardToBoardArray();
+    currentState->checkInfo = checkInfoStruct;
+    currentState->pinInfo = pinInfoStruct;
     return;
 }
 
@@ -1260,7 +1268,7 @@ PinInfo ChessGame::calculatePins(uint64_t our_pieces, uint64_t enemy_pieces,
         if (!ray)
             continue; // Not on same rank/file
         // Count our pieces on this ray
-        uint64_t our_pieces_on_ray = ray & our_pieces;
+        uint64_t our_pieces_on_ray = ray & our_pieces & ~pieceBitboards[is_white ? 5 : 11]; // Exclude the king itself
         if (__builtin_popcountll(our_pieces_on_ray) == 1)
         {
             // Exactly one piece - it's pinned!
@@ -1551,7 +1559,19 @@ void ChessGame::undoMove(const ChessGame::Move &move)
 
     whiteTurn = !whiteTurn;
 
+    gameOver = false; // Reset game over state
+
+    movesPlayed.pop_back(); // Remove the last move from the history
+
     currentState = currentState->previousState; // Move back to the previous state
+
+    checkInfoStruct = currentState->checkInfo; // Restore check info
+    pinInfoStruct = currentState->pinInfo;     // Restore pin info
+
+    whitePieces = pieceBitboards[0] | pieceBitboards[1] | pieceBitboards[2] | pieceBitboards[3] | pieceBitboards[4] | pieceBitboards[5];
+    blackPieces = pieceBitboards[6] | pieceBitboards[7] | pieceBitboards[8] | pieceBitboards[9] | pieceBitboards[10] | pieceBitboards[11];
+    occupiedBitboard = whitePieces | blackPieces;
+    emptyBitboard = ~occupiedBitboard;
 
     return;
 }

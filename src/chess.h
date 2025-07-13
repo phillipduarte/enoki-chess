@@ -148,9 +148,13 @@ public:
     };
 
     ChessGame();
-    void printBoard(bool withBitboards) const;
+    void printBoard(bool withBitboards);
     bool makeMove(const std::string &move);
     bool isGameOver() const;
+    bool isWhiteWins() const
+    {
+        return whiteWins;
+    }
     void parseFEN(const std::string &fen);
     std::string generateFEN() const;
 
@@ -181,6 +185,8 @@ public:
     }
 
     void applyMove(const Move &move);
+
+    std::vector<Move> movesPlayed; // Vector to hold all moves in the game
 
 private:
     // TODO: Define your board representation here (e.g., array or vector)
