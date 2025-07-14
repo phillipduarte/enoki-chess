@@ -69,7 +69,7 @@ int main(int argc, char *argv[])
         engine->initialize(&game);
     }
 
-    game.parseFEN(pinBugFEN); // Use the testing FEN for demonstration purposes
+    game.parseFEN(defaultFEN); // Use the testing FEN for demonstration purposes
     // game.printBoard(true);
     game.preworkPosition();
 

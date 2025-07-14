@@ -70,6 +70,18 @@ public:
         break; // Ignore any other piece types
       }
     }
+    // Add additional evaluation criteria here, such as piece positioning, control of the center, etc.
+    // Let's start with mobility to break ties
+    std::vector<ChessGame::Move> moves = this->gamePtr->getMovesVector();
+    int mobility = moves.size() * 0.5; // Count the number of legal moves available
+    if (this->gamePtr->isWhiteTurn())
+    {
+      score += mobility; // White wants to maximize mobility
+    }
+    else
+    {
+      score -= mobility; // Black wants to minimize mobility
+    }
     return score; // Return the total score
   }
 

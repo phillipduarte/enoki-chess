@@ -188,6 +188,11 @@ public:
 
     std::vector<Move> movesPlayed; // Vector to hold all moves in the game
 
+    std::vector<Move> getMovesVector() const
+    {
+        return movesVector;
+    }
+
 private:
     // TODO: Define your board representation here (e.g., array or vector)
     // For simplicity, we can use a 2D vector of small ints to represent the board
