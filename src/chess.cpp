@@ -153,7 +153,7 @@ void ChessGame::applyMove(const ChessGame::Move &move)
 
     whiteTurn = !whiteTurn;
     preworkPosition(); // Update the board state after the move
-    printf("Move applied: %s to %s\n", ChessGame::getSquareName(move.from).c_str(), ChessGame::getSquareName(move.to).c_str());
+    // printf("Move applied: %s to %s\n", ChessGame::getSquareName(move.from).c_str(), ChessGame::getSquareName(move.to).c_str());
 }
 
 Piece ChessGame::getPieceAtSquareFromBB(Square square) const
@@ -450,13 +450,9 @@ std::vector<ChessGame::Move> ChessGame::generateMoves() const
 
     // TODO: Pawn promotion moves
 
-    std::cout << "About to generate opponent attacks" << std::endl;
-
     opponentAttacks = 0; // Reset opponent attacks before generating new ones
 
     generateOpponentAttacks(); // Generate opponent attacks to check for checks
-
-    std::cout << "Opponent attacks generated" << std::endl;
 
     generateKingMoves(moves); // Generate king moves first to check for checks
 
@@ -1222,7 +1218,6 @@ void ChessGame::preworkPosition()
         }
     }*/
     checkInfoStruct = calculateCheckInfo();
-    std::cout << "Is in check: " << (checkInfoStruct.isInCheck ? "Yes" : "No") << std::endl;
     /*if (checkInfoStruct.isInCheck)
     {
         std::cout << "Checkers: " << std::endl;
@@ -1241,7 +1236,7 @@ void ChessGame::preworkPosition()
         gameOver = true; // No legal moves available, game over
         bitboardToBoardArray();
         whiteWins = !whiteTurn; // If it's white's turn and no moves, black wins
-        std::cout << "Game over: No legal moves available." << std::endl;
+        // std::cout << "Game over: No legal moves available." << std::endl;
     }
     currentState->checkInfo = checkInfoStruct;
     currentState->pinInfo = pinInfoStruct;
@@ -1528,7 +1523,7 @@ void ChessGame::undoMove(const ChessGame::Move &move)
     // For example, you might have a stack of previous states to pop from
     // or you might need to restore specific piece positions based on the move
     // For now, this is just a placeholder function
-    std::cout << "Undoing move from " << getSquareName(move.from) << " to " << getSquareName(move.to) << std::endl;
+    // std::cout << "Undoing move from " << getSquareName(move.from) << " to " << getSquareName(move.to) << std::endl;
 
     uint64_t fromBB = 1ULL << static_cast<int>(move.from);
     uint64_t toBB = 1ULL << static_cast<int>(move.to);
