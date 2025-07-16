@@ -26,7 +26,11 @@ run: $(TARGET)
 clean:
 	rm -rf build
 
-.PHONY: all run clean
+# Add valgrind memory check target
+valgrind-memcheck: $(TARGET)
+	valgrind --tool=memcheck --leak-check=full --show-leak-kinds=all --track-origins=yes ./$(TARGET) $(ARGS)
+
+.PHONY: all run clean valgrind-memcheck
 
 # include the .d files if they exist
 -include $(DEPFILES)
