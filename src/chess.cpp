@@ -470,7 +470,7 @@ std::vector<ChessGame::Move> ChessGame::generateMoves() const
     // Castling moves
     if (!checkInfoStruct.isInCheck)
     {
-        // generateCastlingMoves(moves);
+        generateCastlingMoves(moves);
     }
 
     movesVector = moves; // Store the generated moves in the moves vector
@@ -839,38 +839,68 @@ void ChessGame::generateCastlingMoves(std::vector<Move> &moves) const
     {
         if (castlingRights[0]) // White kingside castling
         {
-            Move move;
-            move.from = Square::e1;
-            move.to = Square::g1;
-            move.isCastling = true;
-            moves.push_back(move);
+            if (!((occupiedBitboard & (1ULL << static_cast<int>(Square::f1))) || (occupiedBitboard & (1ULL << static_cast<int>(Square::g1)))))
+            {
+                // Check if the squares f1 and g1 are will not put the king in check
+                // or pass through a check
+                if (!(opponentAttacks & (1ULL << static_cast<int>(Square::f1))) && !(opponentAttacks & (1ULL << static_cast<int>(Square::g1))))
+                {
+                    Move move;
+                    move.from = Square::e1;
+                    move.to = Square::g1;
+                    move.isCastling = true;
+                    moves.push_back(move);
+                }
+            }
         }
         if (castlingRights[1]) // White queenside castling
         {
-            Move move;
-            move.from = Square::e1;
-            move.to = Square::c1;
-            move.isCastling = true;
-            moves.push_back(move);
+            if (!((occupiedBitboard & (1ULL << static_cast<int>(Square::b1))) || (occupiedBitboard & (1ULL << static_cast<int>(Square::c1))) ||
+                  (occupiedBitboard & (1ULL << static_cast<int>(Square::d1)))))
+            {
+                if (!(opponentAttacks & (1ULL << static_cast<int>(Square::c1))) && !(opponentAttacks & (1ULL << static_cast<int>(Square::d1))))
+                {
+                    Move move;
+                    move.from = Square::e1;
+                    move.to = Square::c1;
+                    move.isCastling = true;
+                    moves.push_back(move);
+                }
+            }
         }
     }
     else
     {
         if (castlingRights[2]) // Black kingside castling
         {
-            Move move;
-            move.from = Square::e8;
-            move.to = Square::g8;
-            move.isCastling = true;
-            moves.push_back(move);
+            if (!((occupiedBitboard & (1ULL << static_cast<int>(Square::f8))) || (occupiedBitboard & (1ULL << static_cast<int>(Square::g8)))))
+            {
+                // Check if the squares f8 and g8 are will not put the king in check
+                // or pass through a check
+                if (!(opponentAttacks & (1ULL << static_cast<int>(Square::f8))) && !(opponentAttacks & (1ULL << static_cast<int>(Square::g8))))
+                {
+                    Move move;
+                    move.from = Square::e8;
+                    move.to = Square::g8;
+                    move.isCastling = true;
+                    moves.push_back(move);
+                }
+            }
         }
-        if (castlingRights[3]) // Black queenside castling
+    }
+    if (castlingRights[3]) // Black queenside castling
+    {
+        if (!((occupiedBitboard & (1ULL << static_cast<int>(Square::b8))) || (occupiedBitboard & (1ULL << static_cast<int>(Square::c8))) ||
+              (occupiedBitboard & (1ULL << static_cast<int>(Square::d8)))))
         {
-            Move move;
-            move.from = Square::e8;
-            move.to = Square::c8;
-            move.isCastling = true;
-            moves.push_back(move);
+            if (!(opponentAttacks & (1ULL << static_cast<int>(Square::c8))) && !(opponentAttacks & (1ULL << static_cast<int>(Square::d8))))
+            {
+                Move move;
+                move.from = Square::e8;
+                move.to = Square::c8;
+                move.isCastling = true;
+                moves.push_back(move);
+            }
         }
     }
 }
@@ -1558,7 +1588,12 @@ void ChessGame::undoMove(const ChessGame::Move &move)
 
     movesPlayed.pop_back(); // Remove the last move from the history
 
+    StateInfo *oldState = currentState; // Save the current state before moving back
+
     currentState = currentState->previousState; // Move back to the previous state
+
+    // Free the old state
+    delete oldState;
 
     checkInfoStruct = currentState->checkInfo; // Restore check info
     pinInfoStruct = currentState->pinInfo;     // Restore pin info
