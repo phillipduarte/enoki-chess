@@ -14,6 +14,7 @@ ChessGame::ChessGame() : whiteTurn(true)
     movesVector = std::vector<Move>();
     movesPlayed = std::vector<Move>();
     currentState = new StateInfo();
+    currentState->castlingRights = 0b1111; // All castling rights available at the start
 }
 
 void ChessGame::printBoard(bool withBitboards)
@@ -121,6 +122,9 @@ void ChessGame::applyMove(const ChessGame::Move &move)
     newState->previousState = currentState; // Link to the previous state
     currentState = newState;
 
+    // Copy over castling rights before processing move
+    currentState->castlingRights = currentState->previousState->castlingRights;
+
     uint64_t fromBB = 1ULL << static_cast<int>(move.from);
     uint64_t toBB = 1ULL << static_cast<int>(move.to);
 
@@ -148,6 +152,53 @@ void ChessGame::applyMove(const ChessGame::Move &move)
 
     // Add piece to destination square
     pieceBitboards[static_cast<int>(piece) - 1] |= toBB;
+
+    if (move.isCastling)
+    {
+        switch (move.to)
+        {
+        case Square::g1:
+            // Kingside castling for white
+            pieceBitboards[static_cast<int>(Piece::r) - 1] |= (1ULL << static_cast<int>(Square::f1));  // Place rook on f1
+            pieceBitboards[static_cast<int>(Piece::r) - 1] &= ~(1ULL << static_cast<int>(Square::h1)); // Remove rook from h1
+            currentState->castlingRights &= 0b0011;                                                    // Remove kingside and queenside castling right for white
+            break;
+        case Square::c1:
+            // Queenside castling for white
+            pieceBitboards[static_cast<int>(Piece::r) - 1] |= (1ULL << static_cast<int>(Square::d1));  // Place rook on d1
+            pieceBitboards[static_cast<int>(Piece::r) - 1] &= ~(1ULL << static_cast<int>(Square::a1)); // Remove rook from a1
+            currentState->castlingRights &= 0b0011;                                                    // Remove kingside and queenside castling right for white
+            break;
+        case Square::g8:
+            // Kingside castling for black
+            pieceBitboards[static_cast<int>(Piece::R) - 1] |= (1ULL << static_cast<int>(Square::f8));  // Place rook on f8
+            pieceBitboards[static_cast<int>(Piece::R) - 1] &= ~(1ULL << static_cast<int>(Square::h8)); // Remove rook from h8
+            currentState->castlingRights &= 0b1100;                                                    // Remove kingside and queenside castling right for black
+            break;
+        case Square::c8:
+            // Queenside castling for black
+            pieceBitboards[static_cast<int>(Piece::R) - 1] |= (1ULL << static_cast<int>(Square::d8));  // Place rook on d8
+            pieceBitboards[static_cast<int>(Piece::R) - 1] &= ~(1ULL << static_cast<int>(Square::a8)); // Remove rook from a8
+            currentState->castlingRights &= 0b1100;                                                    // Remove kingside and queenside castling right for black
+            break;
+
+        default:
+            break;
+        }
+    }
+
+    if (piece == Piece::k || piece == Piece::K)
+    {
+        // If the moved piece is a king, update the castling rights
+        if (piece == Piece::k) // White king
+        {
+            currentState->castlingRights &= 0b0011; // Remove all castling rights for white
+        }
+        else // Black king
+        {
+            currentState->castlingRights &= 0b1100; // Remove all castling rights for black
+        }
+    }
 
     movesPlayed.push_back(move); // Store the move in the history
 
@@ -812,7 +863,7 @@ void ChessGame::generateKingMoves(std::vector<Move> &moves) const // Only legal 
         if (checkInfoStruct.isInCheck)
         {
             // If the king is in check, only allow moves that capture the checking piece
-            attacks &= (checkInfoStruct.checkers | ~checkInfoStruct.checkBlockSquares); // This is annoying I need a way to check if the piece that the king wants to attack is defended
+            attacks &= (checkInfoStruct.checkers | ~checkInfoStruct.checkBlockSquares) & ~opponentAttacks; // This is annoying I need a way to check if the piece that the king wants to attack is defended
         }
 
         while (attacks)
@@ -837,7 +888,7 @@ void ChessGame::generateCastlingMoves(std::vector<Move> &moves) const
     // Generate castling moves for the current turn
     if (whiteTurn)
     {
-        if (castlingRights[0]) // White kingside castling
+        if (currentState->castlingRights & 0b1000) // White kingside castling
         {
             if (!((occupiedBitboard & (1ULL << static_cast<int>(Square::f1))) || (occupiedBitboard & (1ULL << static_cast<int>(Square::g1)))))
             {
@@ -853,7 +904,7 @@ void ChessGame::generateCastlingMoves(std::vector<Move> &moves) const
                 }
             }
         }
-        if (castlingRights[1]) // White queenside castling
+        if (currentState->castlingRights & 0b0100) // White queenside castling
         {
             if (!((occupiedBitboard & (1ULL << static_cast<int>(Square::b1))) || (occupiedBitboard & (1ULL << static_cast<int>(Square::c1))) ||
                   (occupiedBitboard & (1ULL << static_cast<int>(Square::d1)))))
@@ -871,7 +922,7 @@ void ChessGame::generateCastlingMoves(std::vector<Move> &moves) const
     }
     else
     {
-        if (castlingRights[2]) // Black kingside castling
+        if (currentState->castlingRights & 0b0010) // Black kingside castling
         {
             if (!((occupiedBitboard & (1ULL << static_cast<int>(Square::f8))) || (occupiedBitboard & (1ULL << static_cast<int>(Square::g8)))))
             {
@@ -888,7 +939,7 @@ void ChessGame::generateCastlingMoves(std::vector<Move> &moves) const
             }
         }
     }
-    if (castlingRights[3]) // Black queenside castling
+    if (currentState->castlingRights & 0b0001) // Black queenside castling
     {
         if (!((occupiedBitboard & (1ULL << static_cast<int>(Square::b8))) || (occupiedBitboard & (1ULL << static_cast<int>(Square::c8))) ||
               (occupiedBitboard & (1ULL << static_cast<int>(Square::d8)))))
@@ -1481,7 +1532,7 @@ void ChessGame::generateOpponentAttacks() const
     while (knightBitboard)
     {
         knightSq = pop_lsb(knightBitboard); // Get the least significant bit (first knight)
-        opponentAttacks |= knightPseudoAttacks[knightSq] & ~(whiteTurn ? blackPieces : whitePieces);
+        opponentAttacks |= knightPseudoAttacks[knightSq];
     }
 
     // Rook Attacks
@@ -1491,7 +1542,7 @@ void ChessGame::generateOpponentAttacks() const
     {
         rookSq = pop_lsb(rookBitboard); // Get the least significant bit (first rook)
         uint64_t attacks = getRookAttacks(occupiedBitboard, rookSq);
-        opponentAttacks |= attacks & ~(whiteTurn ? blackPieces : whitePieces); // If it's white turn, we are generating black attacks so we can go anywhere BUT black pieces
+        opponentAttacks |= attacks;
     }
 
     // Bishop Attacks
@@ -1501,7 +1552,7 @@ void ChessGame::generateOpponentAttacks() const
     {
         bishopSq = pop_lsb(bishopBitboard); // Get the least significant bit (first bishop)
         uint64_t attacks = getBishopAttacks(occupiedBitboard, bishopSq);
-        opponentAttacks |= attacks; // If it's white turn, we are generating black attacks so we can go anywhere BUT black pieces
+        opponentAttacks |= attacks;
     }
 
     // Queen Attacks
@@ -1511,7 +1562,7 @@ void ChessGame::generateOpponentAttacks() const
     {
         queenSq = pop_lsb(queenBitboard); // Get the least significant bit (first queen)
         uint64_t attacks = getQueenAttacks(occupiedBitboard, queenSq);
-        opponentAttacks |= attacks & ~(whiteTurn ? blackPieces : whitePieces); // If it's white turn, we are generating black attacks so we can go anywhere BUT black pieces
+        opponentAttacks |= attacks;
     }
 
     // King Attacks
@@ -1519,9 +1570,9 @@ void ChessGame::generateOpponentAttacks() const
     int kingSq;
     while (kingBitboard)
     {
-        kingSq = pop_lsb(kingBitboard);                                                          // Get the least significant bit (first king)
-        uint64_t attacks = kingPseudoAttacks[kingSq] & ~(whiteTurn ? blackPieces : whitePieces); // King attacks can go anywhere except on the opponent's pieces
-        opponentAttacks |= attacks;                                                              // Add king attacks to opponent attacks
+        kingSq = pop_lsb(kingBitboard); // Get the least significant bit (first king)
+        uint64_t attacks = kingPseudoAttacks[kingSq];
+        opponentAttacks |= attacks; // Add king attacks to opponent attacks
     }
 
     // Pawn Attacks
@@ -1582,6 +1633,36 @@ void ChessGame::undoMove(const ChessGame::Move &move)
     // Add piece back to source square
     pieceBitboards[static_cast<int>(piece) - 1] |= fromBB;
 
+    if (move.isCastling)
+    {
+        switch (move.to)
+        {
+        case Square::g1:
+            // Kingside castling for white
+            pieceBitboards[static_cast<int>(Piece::r) - 1] &= ~(1ULL << static_cast<int>(Square::f1)); // Remove rook from f1
+            pieceBitboards[static_cast<int>(Piece::r) - 1] |= (1ULL << static_cast<int>(Square::h1));  // Place rook on h1
+            break;
+        case Square::c1:
+            // Queenside castling for white
+            pieceBitboards[static_cast<int>(Piece::r) - 1] &= ~(1ULL << static_cast<int>(Square::d1)); // Remove rook from d1
+            pieceBitboards[static_cast<int>(Piece::r) - 1] |= (1ULL << static_cast<int>(Square::a1));  // Place rook on a1
+            break;
+        case Square::g8:
+            // Kingside castling for black
+            pieceBitboards[static_cast<int>(Piece::R) - 1] &= ~(1ULL << static_cast<int>(Square::f8)); // Remove rook from f8
+            pieceBitboards[static_cast<int>(Piece::R) - 1] |= (1ULL << static_cast<int>(Square::h8));  // Place rook on h8
+            break;
+        case Square::c8:
+            // Queenside castling for black
+            pieceBitboards[static_cast<int>(Piece::R) - 1] &= ~(1ULL << static_cast<int>(Square::d8)); // Remove rook from d8
+            pieceBitboards[static_cast<int>(Piece::R) - 1] |= (1ULL << static_cast<int>(Square::a8));  // Place rook on a8
+            break;
+
+        default:
+            break;
+        }
+    }
+
     whiteTurn = !whiteTurn;
 
     gameOver = false; // Reset game over state
@@ -1591,6 +1672,7 @@ void ChessGame::undoMove(const ChessGame::Move &move)
     StateInfo *oldState = currentState; // Save the current state before moving back
 
     currentState = currentState->previousState; // Move back to the previous state
+    // Castling rights and en passant target square should be restored from the previous state
 
     // Free the old state
     delete oldState;

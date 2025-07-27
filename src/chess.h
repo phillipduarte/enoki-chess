@@ -123,6 +123,8 @@ struct StateInfo
     StateInfo *previousState;
     Piece capturedPiece;    // Piece that was captured in the last move
     Square enPassantSquare; // Square that was en passant captured
+    char castlingRights;    // Let's just represent this with the 4 least sign bits of a char
+                            // 1111 = KQkq
 };
 
 class ChessGame
@@ -136,7 +138,7 @@ public:
         bool isPromotion;
         bool isCapture;
         bool isEnPassant;
-        bool isCastling;
+        bool isCastling = false; // Default to false
 
         bool operator==(const Move &other) const
         {
