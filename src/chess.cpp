@@ -490,15 +490,15 @@ std::string ChessGame::generateFEN()
     fen += whiteTurn ? " w " : " b ";
 
     // Add castling rights
-    if (castlingRights[0])
+    if (currentState->castlingRights & 0b1000)
         fen += "K";
-    if (castlingRights[1])
+    if (currentState->castlingRights & 0b0100)
         fen += "Q";
-    if (castlingRights[2])
+    if (currentState->castlingRights & 0b0010)
         fen += "k";
-    if (castlingRights[3])
+    if (currentState->castlingRights & 0b0001)
         fen += "q";
-    if (!castlingRights[0] && !castlingRights[1] && !castlingRights[2] && !castlingRights[3])
+    if (!currentState->castlingRights)
         fen += "-";
 
     // Add en passant target square
