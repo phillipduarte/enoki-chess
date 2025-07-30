@@ -574,7 +574,11 @@ void ChessGame::generatePawnMoves(std::vector<Move> &moves) const
         if ((whiteTurn && forwardSq < 64 && (emptyBitboard & (1ULL << forwardSq))) ||
             (!whiteTurn && forwardSq >= 0 && (emptyBitboard & (1ULL << forwardSq))))
         {
-            if (pinInfoStruct.pinned_pieces & (1ULL << pawnSq))
+            if ((pinInfoStruct.pinned_pieces & (1ULL << pawnSq)) && checkInfoStruct.isInCheck)
+            {
+                ; // Do nothing if in check and pawn is pinned
+            }
+            else if (pinInfoStruct.pinned_pieces & (1ULL << pawnSq))
             {
                 // If the pawn is pinned, it can only move forward if the pin ray allows it
                 if ((pinInfoStruct.pin_rays[pawnSq] & (1ULL << forwardSq)))
@@ -614,7 +618,11 @@ void ChessGame::generatePawnMoves(std::vector<Move> &moves) const
                 (!whiteTurn && doubleForwardSq >= 0 && (emptyBitboard & (1ULL << doubleForwardSq)) &&
                  (pawnSq / 8 == (whiteTurn ? 1 : 6))))
             {
-                if (pinInfoStruct.pinned_pieces & (1ULL << pawnSq))
+                if ((pinInfoStruct.pinned_pieces & (1ULL << pawnSq)) && checkInfoStruct.isInCheck)
+                {
+                    ; // Do nothing if in check and pawn is pinned
+                }
+                else if (pinInfoStruct.pinned_pieces & (1ULL << pawnSq))
                 {
                     // If the pawn is pinned, it can only move forward if the pin ray allows it
                     if ((pinInfoStruct.pin_rays[pawnSq] & (1ULL << doubleForwardSq)))
@@ -654,7 +662,11 @@ void ChessGame::generatePawnMoves(std::vector<Move> &moves) const
         if (pawnSq % 8 != 0 && ((whiteTurn && leftCaptureSq < 64 && (1ULL << leftCaptureSq) & blackPieces) ||
                                 (!whiteTurn && leftCaptureSq >= 0 && (1ULL << leftCaptureSq) & whitePieces)))
         {
-            if (checkInfoStruct.isInCheck)
+            if ((pinInfoStruct.pinned_pieces & (1ULL << pawnSq)) && checkInfoStruct.isInCheck)
+            {
+                ; // Do nothing if in check and pawn is pinned
+            }
+            else if (checkInfoStruct.isInCheck)
             {
                 // If the king is in check, only allow moves that block the check or capture the checking piece
                 // And we also make sure that if the pawn is pinned, it can only capture if the pin ray allows it
@@ -693,7 +705,11 @@ void ChessGame::generatePawnMoves(std::vector<Move> &moves) const
         if (pawnSq % 8 != 7 && ((whiteTurn && rightCaptureSq < 64 && (1ULL << rightCaptureSq) & blackPieces) ||
                                 (!whiteTurn && rightCaptureSq >= 0 && (1ULL << rightCaptureSq) & whitePieces)))
         {
-            if (pinInfoStruct.pinned_pieces & (1ULL << pawnSq))
+            if ((pinInfoStruct.pinned_pieces & (1ULL << pawnSq)) && checkInfoStruct.isInCheck)
+            {
+                ; // Do nothing if in check and pawn is pinned
+            }
+            else if (pinInfoStruct.pinned_pieces & (1ULL << pawnSq))
             {
                 // If the pawn is pinned, it can only capture if the pin ray allows it
                 if ((pinInfoStruct.pin_rays[pawnSq] & (1ULL << rightCaptureSq)))
@@ -733,7 +749,11 @@ void ChessGame::generatePawnMoves(std::vector<Move> &moves) const
             int enPassantSq = static_cast<int>(currentState->enPassantSquare);
             if (pawnSq % 8 != 0 && leftCaptureSq == enPassantSq && ((whiteTurn && enPassantSq >= 40 && enPassantSq <= 47) || (!whiteTurn && enPassantSq >= 16 && enPassantSq <= 23)))
             {
-                if (checkInfoStruct.isInCheck)
+                if (pinInfoStruct.pinned_pieces & (1ULL << pawnSq) && checkInfoStruct.isInCheck)
+                {
+                    ; // Do nothing if in check and pawn is pinned
+                }
+                else if (checkInfoStruct.isInCheck)
                 {
                     // If the king is in check, only allow moves that block the check or capture the checking piece
                     // And we also make sure that if the pawn is pinned, it can only capture if the pin ray allows it
@@ -773,7 +793,11 @@ void ChessGame::generatePawnMoves(std::vector<Move> &moves) const
             }
             if (pawnSq % 8 != 7 && rightCaptureSq == enPassantSq && ((whiteTurn && enPassantSq >= 40 && enPassantSq <= 47) || (!whiteTurn && enPassantSq >= 16 && enPassantSq <= 23)))
             {
-                if (checkInfoStruct.isInCheck)
+                if (pinInfoStruct.pinned_pieces & (1ULL << pawnSq) && checkInfoStruct.isInCheck)
+                {
+                    ; // Do nothing if in check and pawn is pinned
+                }
+                else if (checkInfoStruct.isInCheck)
                 {
                     // If the king is in check, only allow moves that block the check or capture the checking piece
                     // And we also make sure that if the pawn is pinned, it can only capture if the pin ray allows it
