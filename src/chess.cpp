@@ -1486,7 +1486,7 @@ PinInfo ChessGame::calculatePins(uint64_t our_pieces, uint64_t enemy_pieces, boo
             if (pin_ray)
             {
                 // Count our pieces on this ray (excluding king)
-                uint64_t our_pieces_on_ray = pin_ray & our_pieces & ~pieceBitboards[is_white ? 5 : 11];
+                uint64_t our_pieces_on_ray = pin_ray & (whiteTurn ? whitePieces : blackPieces) & ~pieceBitboards[is_white ? 5 : 11];
                 if (__builtin_popcountll(our_pieces_on_ray) == 1)
                 {
                     // Exactly one piece - it's pinned!
