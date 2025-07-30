@@ -1815,8 +1815,8 @@ void ChessGame::generateOpponentAttacks() const
     else
     {
         // Calculate for white pawns attacking black squares
-        leftPawnAttacks = (pawnBitboard & ~fileConst[7]) << 7;  // Left attacks
-        rightPawnAttacks = (pawnBitboard & ~fileConst[0]) << 9; // Right attacks
+        leftPawnAttacks = (pawnBitboard & ~fileConst[0]) << 7;  // Left attacks
+        rightPawnAttacks = (pawnBitboard & ~fileConst[7]) << 9; // Right attacks
     }
     // Combine pawn attacks
     opponentAttacks |= leftPawnAttacks | rightPawnAttacks;
