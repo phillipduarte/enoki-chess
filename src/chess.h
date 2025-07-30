@@ -121,10 +121,10 @@ struct StateInfo
     PinInfo pinInfo;     // Information about pinned pieces
     CheckInfo checkInfo; // Information about checks
     StateInfo *previousState;
-    Piece capturedPiece;    // Piece that was captured in the last move
-    Square enPassantSquare; // Square that was en passant captured
-    char castlingRights;    // Let's just represent this with the 4 least sign bits of a char
-                            // 1111 = KQkq
+    Piece capturedPiece;                 // Piece that was captured in the last move
+    Square enPassantSquare = Square::a1; // Square that was en passant captured
+    char castlingRights;                 // Let's just represent this with the 4 least sign bits of a char
+                                         // 1111 = KQkq
 };
 
 class ChessGame
@@ -137,8 +137,8 @@ public:
         Piece promotion;
         bool isPromotion;
         bool isCapture;
-        bool isEnPassant;
-        bool isCastling = false; // Default to false
+        bool isEnPassant = false; // Default to false
+        bool isCastling = false;  // Default to false
 
         bool operator==(const Move &other) const
         {
@@ -158,7 +158,7 @@ public:
         return whiteWins;
     }
     void parseFEN(const std::string &fen);
-    std::string generateFEN() const;
+    std::string generateFEN();
 
     std::vector<Move> generateMoves() const;
 
