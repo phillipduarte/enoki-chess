@@ -266,7 +266,7 @@ void ChessGame::parseFEN(const std::string &fen)
     ss >> board >> activeColor >> castling >> enPassant >> halfmove >> fullmove;
 
     // Process board placement
-    int row = 0;
+    int row = 7; // Start from the 8th rank
     int col = 0;
 
     int i = 0;
@@ -275,7 +275,7 @@ void ChessGame::parseFEN(const std::string &fen)
         if (c == '/')
         {
             // Move to the next rank
-            row++;
+            row--;
             col = 0;
         }
         else if (isdigit(c))
@@ -290,52 +290,52 @@ void ChessGame::parseFEN(const std::string &fen)
             switch (c)
             {
             case 'p':
-                piece = Piece::p;
-                pieceBitboards[0] |= (1ULL << (row * 8 + col));
-                break;
-            case 'r':
-                piece = Piece::r;
-                pieceBitboards[1] |= (1ULL << (row * 8 + col));
-                break;
-            case 'n':
-                piece = Piece::n;
-                pieceBitboards[2] |= (1ULL << (row * 8 + col));
-                break;
-            case 'b':
-                piece = Piece::b;
-                pieceBitboards[3] |= (1ULL << (row * 8 + col));
-                break;
-            case 'q':
-                piece = Piece::q;
-                pieceBitboards[4] |= (1ULL << (row * 8 + col));
-                break;
-            case 'k':
-                piece = Piece::k;
-                pieceBitboards[5] |= (1ULL << (row * 8 + col));
-                break;
-            case 'P':
                 piece = Piece::P;
                 pieceBitboards[6] |= (1ULL << (row * 8 + col));
                 break;
-            case 'R':
+            case 'r':
                 piece = Piece::R;
                 pieceBitboards[7] |= (1ULL << (row * 8 + col));
                 break;
-            case 'N':
+            case 'n':
                 piece = Piece::N;
                 pieceBitboards[8] |= (1ULL << (row * 8 + col));
                 break;
-            case 'B':
+            case 'b':
                 piece = Piece::B;
                 pieceBitboards[9] |= (1ULL << (row * 8 + col));
                 break;
-            case 'Q':
+            case 'q':
                 piece = Piece::Q;
                 pieceBitboards[10] |= (1ULL << (row * 8 + col));
                 break;
-            case 'K':
+            case 'k':
                 piece = Piece::K;
                 pieceBitboards[11] |= (1ULL << (row * 8 + col));
+                break;
+            case 'P':
+                piece = Piece::p;
+                pieceBitboards[0] |= (1ULL << (row * 8 + col));
+                break;
+            case 'R':
+                piece = Piece::r;
+                pieceBitboards[1] |= (1ULL << (row * 8 + col));
+                break;
+            case 'N':
+                piece = Piece::n;
+                pieceBitboards[2] |= (1ULL << (row * 8 + col));
+                break;
+            case 'B':
+                piece = Piece::b;
+                pieceBitboards[3] |= (1ULL << (row * 8 + col));
+                break;
+            case 'Q':
+                piece = Piece::q;
+                pieceBitboards[4] |= (1ULL << (row * 8 + col));
+                break;
+            case 'K':
+                piece = Piece::k;
+                pieceBitboards[5] |= (1ULL << (row * 8 + col));
                 break;
             default:
                 piece = Piece::e; // Should not happen
