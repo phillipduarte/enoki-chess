@@ -229,6 +229,27 @@ void ChessGame::applyMove(const ChessGame::Move &move)
         }
     }
 
+    if (piece == Piece::r || piece == Piece::R)
+    {
+        switch (move.from)
+        {
+        case Square::a1:
+            currentState->castlingRights &= 0b1011; // Remove queenside castling right for white
+            break;
+        case Square::h1:
+            currentState->castlingRights &= 0b0111; // Remove kingside castling right for white
+            break;
+        case Square::a8:
+            currentState->castlingRights &= 0b1110; // Remove queenside cast
+            break;
+        case Square::h8:
+            currentState->castlingRights &= 0b1101; // Remove kingside castling right for black
+            break;
+        default:
+            break;
+        }
+    }
+
     movesPlayed.push_back(move); // Store the move in the history
 
     whiteTurn = !whiteTurn;
@@ -355,6 +376,15 @@ void ChessGame::parseFEN(const std::string &fen)
     castlingRights[2] = (castling.find('k') != std::string::npos); // Black kingside
     castlingRights[3] = (castling.find('q') != std::string::npos); // Black queenside
 
+    currentState->castlingRights = 0;
+    if (castlingRights[0])
+        currentState->castlingRights |= 0b1000; // White kingside
+    if (castlingRights[1])
+        currentState->castlingRights |= 0b0100; // White queenside
+    if (castlingRights[2])
+        currentState->castlingRights |= 0b0010; // Black kingside
+    if (castlingRights[3])
+        currentState->castlingRights |= 0b0001; // Black queenside
     // Set en passant target square
     if (enPassant == "-")
     {
