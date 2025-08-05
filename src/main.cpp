@@ -57,9 +57,11 @@ int main(int argc, char *argv[])
     }
 
     const std::string defaultFEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-    const std::string testingFEN = "rnbq1bnr/pppppppp/4kq2/8/3B4/1P2P2Q/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-    const std::string mateInOneFEN = "rnb1k1nr/pppp1ppp/5q2/2b1p3/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"; // Example FEN for a mate in one position
+    const std::string testingFEN = "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1";
+    const std::string mateInOneFEN = "1rb1k1nr/prpp1ppp/8/2b1pq2/8/8/P2PPPPP/KNBQ1BNR w KQkq - 0 1"; // Example FEN for a mate in one position
     const std::string pinBugFEN = "rnbqkbnr/pppp1ppp/8/4p3/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+    const std::string enPassantFEN = "rnbqkbnr/pppp1ppp/8/8/3Pp3/8/PPP1PPPP/RNBQKBNR w KQkq d6 0 1"; // Example FEN for en passant
+    const std::string perftFEN = "r3k2r/pppbbppp/2n2q1P/1P2p3/3pn3/BN2PNP1/P1PPQPB1/R3K2R w KQkq - 0 1";
 
     // Initialize the chess game
     ChessGame game;
@@ -69,7 +71,7 @@ int main(int argc, char *argv[])
         engine->initialize(&game);
     }
 
-    game.parseFEN(defaultFEN); // Use the testing FEN for demonstration purposes
+    game.parseFEN(testingFEN); // Use the testing FEN for demonstration purposes
     // game.printBoard(true);
     game.preworkPosition();
 
@@ -84,7 +86,7 @@ int main(int argc, char *argv[])
             // For now, we will just simulate a bot move
             std::cout << "Bot is making a move..." << std::endl;
             // Simulate a random move or a predefined move
-            ChessGame::Move moveStruct = engine->getBestMove(4); // Get the best move from the
+            ChessGame::Move moveStruct = engine->getBestMove(5); // Get the best move from the
             move = ChessGame::getSquareName(moveStruct.from) + ChessGame::getSquareName(moveStruct.to);
             game.generateMoves(); // Generate moves after the bot's move
         }
@@ -94,6 +96,22 @@ int main(int argc, char *argv[])
             std::cout << "Select your piece" << std::endl;
             std::string squareString;
             std::cin >> squareString;
+            if (squareString == "undo")
+            {
+                if (!game.movesPlayed.empty())
+                {
+                    game.undoMove(game.movesPlayed.back());
+                    game.printBoard(false);
+                    game.preworkPosition();
+                    continue;
+                }
+                else
+                {
+                    std::cout << "No moves to undo." << std::endl;
+                    continue;
+                }
+            }
+            /*
             int sq = ChessGame::parseSquare(squareString);
             if (sq < 0 || sq > 63)
             {
@@ -113,10 +131,8 @@ int main(int argc, char *argv[])
             }
             std::cout << "Selected destination square: " << destSquareString << std::endl;
             // Construct the move string
-            move = squareString + destSquareString;
-            ChessGame::Move moveStruct;
-            moveStruct.from = static_cast<Square>(sq);
-            moveStruct.to = static_cast<Square>(destSq);
+            */
+            move = squareString;
         }
 
         if (move == "exit")
@@ -127,6 +143,7 @@ int main(int argc, char *argv[])
         if (game.makeMove(move))
         {
             game.printBoard(false);
+            std::cout << game.generateFEN() << std::endl;
         }
         else
         {
