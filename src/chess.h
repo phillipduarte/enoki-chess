@@ -134,18 +134,19 @@ public:
     {
         Square from;
         Square to;
-        Piece promotionPiece;
-        bool isPromotion = false; // Default to false
-        bool isCapture = false;   // Default to false
-        bool isEnPassant = false; // Default to false
-        bool isCastling = false;  // Default to false
+        Piece promotionPiece = Piece::e; // Promotion piece, default to empty
+        bool isPromotion = false;        // Default to false
+        bool isCapture = false;          // Default to false
+        bool isEnPassant = false;        // Default to false
+        bool isCastling = false;         // Default to false
 
         bool operator==(const Move &other) const
         {
             return from == other.from &&
                    to == other.to &&
                    isCapture == other.isCapture &&
-                   isCastling == other.isCastling;
+                   isCastling == other.isCastling &&
+                   promotionPiece == other.promotionPiece;
         }
     };
 
