@@ -126,7 +126,7 @@ ChessGame::Move ChessGame::getMove(const ChessGame::Move &move) const
     // Check if move is in our moves vector
     for (const Move &m : movesVector)
     {
-        if (m == move) // Assuming you have an equals method in Move
+        if ((m.to == move.to) && m.from == move.from && move.promotionPiece == move.promotionPiece) // Assuming you have an equals method in Move
         {
             return m;
         }
@@ -781,7 +781,7 @@ void ChessGame::generatePawnMoves(std::vector<Move> &moves) const
                         for (Piece promotionPiece : {Piece::Q, Piece::R, Piece::B, Piece::N})
                         {
                             Move move;
-                            move.isCapture = false;
+                            move.isCapture = true;
                             move.isPromotion = true; // Set promotion flag
                             move.from = static_cast<Square>(pawnSq);
                             move.to = static_cast<Square>(leftCaptureSq);
@@ -809,7 +809,7 @@ void ChessGame::generatePawnMoves(std::vector<Move> &moves) const
                         for (Piece promotionPiece : {Piece::Q, Piece::R, Piece::B, Piece::N})
                         {
                             Move move;
-                            move.isCapture = false;
+                            move.isCapture = true;
                             move.isPromotion = true; // Set promotion flag
                             move.from = static_cast<Square>(pawnSq);
                             move.to = static_cast<Square>(leftCaptureSq);
@@ -834,7 +834,7 @@ void ChessGame::generatePawnMoves(std::vector<Move> &moves) const
                     for (Piece promotionPiece : {Piece::Q, Piece::R, Piece::B, Piece::N})
                     {
                         Move move;
-                        move.isCapture = false;
+                        move.isCapture = true;
                         move.isPromotion = true; // Set promotion flag
                         move.from = static_cast<Square>(pawnSq);
                         move.to = static_cast<Square>(leftCaptureSq);
@@ -870,7 +870,7 @@ void ChessGame::generatePawnMoves(std::vector<Move> &moves) const
                         for (Piece promotionPiece : {Piece::Q, Piece::R, Piece::B, Piece::N})
                         {
                             Move move;
-                            move.isCapture = false;
+                            move.isCapture = true;
                             move.isPromotion = true; // Set promotion flag
                             move.from = static_cast<Square>(pawnSq);
                             move.to = static_cast<Square>(rightCaptureSq);
@@ -898,7 +898,7 @@ void ChessGame::generatePawnMoves(std::vector<Move> &moves) const
                         for (Piece promotionPiece : {Piece::Q, Piece::R, Piece::B, Piece::N})
                         {
                             Move move;
-                            move.isCapture = false;
+                            move.isCapture = true;
                             move.isPromotion = true; // Set promotion flag
                             move.from = static_cast<Square>(pawnSq);
                             move.to = static_cast<Square>(rightCaptureSq);
@@ -923,7 +923,7 @@ void ChessGame::generatePawnMoves(std::vector<Move> &moves) const
                     for (Piece promotionPiece : {Piece::Q, Piece::R, Piece::B, Piece::N})
                     {
                         Move move;
-                        move.isCapture = false;
+                        move.isCapture = true;
                         move.isPromotion = true; // Set promotion flag
                         move.from = static_cast<Square>(pawnSq);
                         move.to = static_cast<Square>(rightCaptureSq);
