@@ -2109,8 +2109,16 @@ void ChessGame::undoMove(const ChessGame::Move &move)
         }
     }
 
-    // Add piece back to source square
-    pieceBitboards[static_cast<int>(piece) - 1] |= fromBB;
+    if (move.isPromotion)
+    {
+        // Add pawn back to source square
+        pieceBitboards[static_cast<int>(whiteTurn ? Piece::P : Piece::p) - 1] |= fromBB;
+    }
+    else
+    {
+        // Add piece back to source square
+        pieceBitboards[static_cast<int>(piece) - 1] |= fromBB;
+    }
 
     if (move.isCastling)
     {
