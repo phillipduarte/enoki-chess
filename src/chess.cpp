@@ -94,6 +94,25 @@ bool ChessGame::makeMove(const std::string &moveStr)
     Move move = {};
     move.from = static_cast<Square>(ChessGame::parseSquare(moveStr.substr(0, 2)));
     move.to = static_cast<Square>(ChessGame::parseSquare(moveStr.substr(2, 2)));
+    if (moveStr.length() == 5)
+    {
+        move.isPromotion = true;
+        switch (moveStr[4])
+        {
+        case 'q':
+            move.promotionPiece = Piece::Q;
+            break;
+        case 'r':
+            move.promotionPiece = Piece::R;
+            break;
+        case 'b':
+            move.promotionPiece = Piece::B;
+            break;
+        case 'n':
+            move.promotionPiece = Piece::N;
+            break;
+        }
+    }
     if (getMove(move) == Move{})
     {
         return false; // Move not found in our moves vector
@@ -107,8 +126,7 @@ ChessGame::Move ChessGame::getMove(const ChessGame::Move &move) const
     // Check if move is in our moves vector
     for (const Move &m : movesVector)
     {
-        if (m.from == move.from &&
-            m.to == move.to)
+        if (m == move) // Assuming you have an equals method in Move
         {
             return m;
         }
@@ -180,7 +198,14 @@ void ChessGame::applyMove(const ChessGame::Move &move)
     }
 
     // Add piece to destination square
-    pieceBitboards[static_cast<int>(piece) - 1] |= toBB;
+    if (move.isPromotion)
+    {
+        pieceBitboards[static_cast<int>(move.promotionPiece) - 1 - (whiteTurn ? 6 : 0)] |= toBB;
+    }
+    else
+    {
+        pieceBitboards[static_cast<int>(piece) - 1] |= toBB;
+    }
 
     if (move.isCastling)
     {
