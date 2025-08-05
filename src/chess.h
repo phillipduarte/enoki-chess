@@ -134,9 +134,9 @@ public:
     {
         Square from;
         Square to;
-        Piece promotion;
-        bool isPromotion;
-        bool isCapture;
+        Piece promotionPiece;
+        bool isPromotion = false; // Default to false
+        bool isCapture = false;   // Default to false
         bool isEnPassant = false; // Default to false
         bool isCastling = false;  // Default to false
 

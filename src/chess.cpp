@@ -613,11 +613,27 @@ void ChessGame::generatePawnMoves(std::vector<Move> &moves) const
                 // If the pawn is pinned, it can only move forward if the pin ray allows it
                 if ((pinInfoStruct.pin_rays[pawnSq] & (1ULL << forwardSq)))
                 {
-                    Move move;
-                    move.from = static_cast<Square>(pawnSq);
-                    move.to = static_cast<Square>(forwardSq);
-                    move.isCapture = false;
-                    moves.push_back(move);
+                    if ((forwardSq >= 0 && forwardSq <= 7) || (forwardSq >= 56 && forwardSq <= 63))
+                    {
+                        for (Piece promotionPiece : {Piece::Q, Piece::R, Piece::B, Piece::N})
+                        {
+                            Move move;
+                            move.isCapture = false;
+                            move.isPromotion = true; // Set promotion flag
+                            move.from = static_cast<Square>(pawnSq);
+                            move.to = static_cast<Square>(forwardSq);
+                            move.promotionPiece = promotionPiece; // Set the promotion piece
+                            moves.push_back(move);
+                        }
+                    }
+                    else
+                    {
+                        Move move;
+                        move.from = static_cast<Square>(pawnSq);
+                        move.to = static_cast<Square>(forwardSq);
+                        move.isCapture = false;
+                        moves.push_back(move);
+                    }
                 }
             }
             else if (checkInfoStruct.isInCheck)
@@ -625,20 +641,52 @@ void ChessGame::generatePawnMoves(std::vector<Move> &moves) const
                 // If the king is in check, only allow moves that block the check or capture the checking piece
                 if ((checkInfoStruct.checkers & (1ULL << forwardSq)) || (checkInfoStruct.checkBlockSquares & (1ULL << forwardSq)))
                 {
+                    if ((forwardSq >= 0 && forwardSq <= 7) || (forwardSq >= 56 && forwardSq <= 63))
+                    {
+                        for (Piece promotionPiece : {Piece::Q, Piece::R, Piece::B, Piece::N})
+                        {
+                            Move move;
+                            move.from = static_cast<Square>(pawnSq);
+                            move.to = static_cast<Square>(forwardSq);
+                            move.isCapture = false;
+                            move.isPromotion = true;              // Set promotion flag
+                            move.promotionPiece = promotionPiece; // Set the promotion piece
+                            moves.push_back(move);
+                        }
+                    }
+                    else
+                    {
+                        Move move;
+                        move.from = static_cast<Square>(pawnSq);
+                        move.to = static_cast<Square>(forwardSq);
+                        move.isCapture = false;
+                        moves.push_back(move);
+                    }
+                }
+            }
+            else
+            {
+                if ((forwardSq >= 0 && forwardSq <= 7) || (forwardSq >= 56 && forwardSq <= 63))
+                {
+                    for (Piece promotionPiece : {Piece::Q, Piece::R, Piece::B, Piece::N})
+                    {
+                        Move move;
+                        move.from = static_cast<Square>(pawnSq);
+                        move.to = static_cast<Square>(forwardSq);
+                        move.isCapture = false;
+                        move.isPromotion = true;              // Set promotion flag
+                        move.promotionPiece = promotionPiece; // Set the promotion piece
+                        moves.push_back(move);
+                    }
+                }
+                else
+                {
                     Move move;
                     move.from = static_cast<Square>(pawnSq);
                     move.to = static_cast<Square>(forwardSq);
                     move.isCapture = false;
                     moves.push_back(move);
                 }
-            }
-            else
-            {
-                Move move;
-                move.from = static_cast<Square>(pawnSq);
-                move.to = static_cast<Square>(forwardSq);
-                move.isCapture = false;
-                moves.push_back(move);
             }
 
             // Double forward move
@@ -703,11 +751,27 @@ void ChessGame::generatePawnMoves(std::vector<Move> &moves) const
 
                 if ((pinInfoStruct.pin_rays[pawnSq] & (1ULL << leftCaptureSq)) || (checkInfoStruct.checkers & (1ULL << leftCaptureSq)) || (checkInfoStruct.checkBlockSquares & (1ULL << leftCaptureSq)))
                 {
-                    Move move;
-                    move.from = static_cast<Square>(pawnSq);
-                    move.to = static_cast<Square>(leftCaptureSq);
-                    move.isCapture = true;
-                    moves.push_back(move);
+                    if ((forwardSq >= 0 && forwardSq <= 7) || (forwardSq >= 56 && forwardSq <= 63))
+                    {
+                        for (Piece promotionPiece : {Piece::Q, Piece::R, Piece::B, Piece::N})
+                        {
+                            Move move;
+                            move.isCapture = false;
+                            move.isPromotion = true; // Set promotion flag
+                            move.from = static_cast<Square>(pawnSq);
+                            move.to = static_cast<Square>(leftCaptureSq);
+                            move.promotionPiece = promotionPiece; // Set the promotion piece
+                            moves.push_back(move);
+                        }
+                    }
+                    else
+                    {
+                        Move move;
+                        move.from = static_cast<Square>(pawnSq);
+                        move.to = static_cast<Square>(leftCaptureSq);
+                        move.isCapture = true;
+                        moves.push_back(move);
+                    }
                 }
             }
             else if (pinInfoStruct.pinned_pieces & (1ULL << pawnSq))
@@ -715,20 +779,52 @@ void ChessGame::generatePawnMoves(std::vector<Move> &moves) const
                 // If the pawn is pinned, it can only capture if the pin ray allows it
                 if ((pinInfoStruct.pin_rays[pawnSq] & (1ULL << leftCaptureSq)))
                 {
+                    if ((forwardSq >= 0 && forwardSq <= 7) || (forwardSq >= 56 && forwardSq <= 63))
+                    {
+                        for (Piece promotionPiece : {Piece::Q, Piece::R, Piece::B, Piece::N})
+                        {
+                            Move move;
+                            move.isCapture = false;
+                            move.isPromotion = true; // Set promotion flag
+                            move.from = static_cast<Square>(pawnSq);
+                            move.to = static_cast<Square>(leftCaptureSq);
+                            move.promotionPiece = promotionPiece; // Set the promotion piece
+                            moves.push_back(move);
+                        }
+                    }
+                    else
+                    {
+                        Move move;
+                        move.from = static_cast<Square>(pawnSq);
+                        move.to = static_cast<Square>(leftCaptureSq);
+                        move.isCapture = true;
+                        moves.push_back(move);
+                    }
+                }
+            }
+            else
+            {
+                if ((forwardSq >= 0 && forwardSq <= 7) || (forwardSq >= 56 && forwardSq <= 63))
+                {
+                    for (Piece promotionPiece : {Piece::Q, Piece::R, Piece::B, Piece::N})
+                    {
+                        Move move;
+                        move.isCapture = false;
+                        move.isPromotion = true; // Set promotion flag
+                        move.from = static_cast<Square>(pawnSq);
+                        move.to = static_cast<Square>(leftCaptureSq);
+                        move.promotionPiece = promotionPiece; // Set the promotion piece
+                        moves.push_back(move);
+                    }
+                }
+                else
+                {
                     Move move;
                     move.from = static_cast<Square>(pawnSq);
                     move.to = static_cast<Square>(leftCaptureSq);
                     move.isCapture = true;
                     moves.push_back(move);
                 }
-            }
-            else
-            {
-                Move move;
-                move.from = static_cast<Square>(pawnSq);
-                move.to = static_cast<Square>(leftCaptureSq);
-                move.isCapture = true;
-                moves.push_back(move);
             }
         }
         int rightCaptureSq = pawnSq + (whiteTurn ? 9 : -7);
@@ -744,11 +840,27 @@ void ChessGame::generatePawnMoves(std::vector<Move> &moves) const
                 // If the pawn is pinned, it can only capture if the pin ray allows it
                 if ((pinInfoStruct.pin_rays[pawnSq] & (1ULL << rightCaptureSq)))
                 {
-                    Move move;
-                    move.from = static_cast<Square>(pawnSq);
-                    move.to = static_cast<Square>(rightCaptureSq);
-                    move.isCapture = true;
-                    moves.push_back(move);
+                    if ((forwardSq >= 0 && forwardSq <= 7) || (forwardSq >= 56 && forwardSq <= 63))
+                    {
+                        for (Piece promotionPiece : {Piece::Q, Piece::R, Piece::B, Piece::N})
+                        {
+                            Move move;
+                            move.isCapture = false;
+                            move.isPromotion = true; // Set promotion flag
+                            move.from = static_cast<Square>(pawnSq);
+                            move.to = static_cast<Square>(rightCaptureSq);
+                            move.promotionPiece = promotionPiece; // Set the promotion piece
+                            moves.push_back(move);
+                        }
+                    }
+                    else
+                    {
+                        Move move;
+                        move.from = static_cast<Square>(pawnSq);
+                        move.to = static_cast<Square>(rightCaptureSq);
+                        move.isCapture = true;
+                        moves.push_back(move);
+                    }
                 }
             }
             else if (checkInfoStruct.isInCheck)
@@ -756,20 +868,52 @@ void ChessGame::generatePawnMoves(std::vector<Move> &moves) const
                 // If the king is in check, only allow moves that block the check or capture the checking piece
                 if ((checkInfoStruct.checkers & (1ULL << rightCaptureSq)) || (checkInfoStruct.checkBlockSquares & (1ULL << rightCaptureSq)))
                 {
+                    if ((forwardSq >= 0 && forwardSq <= 7) || (forwardSq >= 56 && forwardSq <= 63))
+                    {
+                        for (Piece promotionPiece : {Piece::Q, Piece::R, Piece::B, Piece::N})
+                        {
+                            Move move;
+                            move.isCapture = false;
+                            move.isPromotion = true; // Set promotion flag
+                            move.from = static_cast<Square>(pawnSq);
+                            move.to = static_cast<Square>(rightCaptureSq);
+                            move.promotionPiece = promotionPiece; // Set the promotion piece
+                            moves.push_back(move);
+                        }
+                    }
+                    else
+                    {
+                        Move move;
+                        move.from = static_cast<Square>(pawnSq);
+                        move.to = static_cast<Square>(rightCaptureSq);
+                        move.isCapture = true;
+                        moves.push_back(move);
+                    }
+                }
+            }
+            else
+            {
+                if ((forwardSq >= 0 && forwardSq <= 7) || (forwardSq >= 56 && forwardSq <= 63))
+                {
+                    for (Piece promotionPiece : {Piece::Q, Piece::R, Piece::B, Piece::N})
+                    {
+                        Move move;
+                        move.isCapture = false;
+                        move.isPromotion = true; // Set promotion flag
+                        move.from = static_cast<Square>(pawnSq);
+                        move.to = static_cast<Square>(rightCaptureSq);
+                        move.promotionPiece = promotionPiece; // Set the promotion piece
+                        moves.push_back(move);
+                    }
+                }
+                else
+                {
                     Move move;
                     move.from = static_cast<Square>(pawnSq);
                     move.to = static_cast<Square>(rightCaptureSq);
                     move.isCapture = true;
                     moves.push_back(move);
                 }
-            }
-            else
-            {
-                Move move;
-                move.from = static_cast<Square>(pawnSq);
-                move.to = static_cast<Square>(rightCaptureSq);
-                move.isCapture = true;
-                moves.push_back(move);
             }
         }
 
