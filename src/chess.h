@@ -315,8 +315,7 @@ private:
     PinInfo pinInfoStruct = {};     // Struct to hold pin information
     CheckInfo checkInfoStruct = {}; // Struct to hold check information
 
-    PinInfo calculatePins(uint64_t our_pieces, uint64_t enemy_pieces,
-                          bool is_white);
+    PinInfo calculatePins(uint64_t enemy_pieces, bool is_white) const;
 
     uint64_t getRayBetween(int from, int to) const;
 
@@ -343,6 +342,8 @@ private:
     void generateOpponentAttacks() const;
 
     StateInfo *currentState = nullptr; // Pointer to the current state info
+
+    bool enPassantIsLegal(int pawnSq, int enPassantSq) const;
 };
 
 #endif // CHESS_H

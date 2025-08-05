@@ -777,6 +777,7 @@ void ChessGame::generatePawnMoves(std::vector<Move> &moves) const
         if (currentState->enPassantSquare != Square::a1)
         {
             int enPassantSq = static_cast<int>(currentState->enPassantSquare);
+            int targetPawnSq = enPassantSq + (whiteTurn ? -8 : 8); // The square of the pawn that is being captured en passant
             if (pawnSq % 8 != 0 && leftCaptureSq == enPassantSq && ((whiteTurn && enPassantSq >= 40 && enPassantSq <= 47) || (!whiteTurn && enPassantSq >= 16 && enPassantSq <= 23)))
             {
                 if (pinInfoStruct.pinned_pieces & (1ULL << pawnSq) && checkInfoStruct.isInCheck)
@@ -788,7 +789,7 @@ void ChessGame::generatePawnMoves(std::vector<Move> &moves) const
                     // If the king is in check, only allow moves that block the check or capture the checking piece
                     // And we also make sure that if the pawn is pinned, it can only capture if the pin ray allows it
 
-                    if ((pinInfoStruct.pin_rays[pawnSq] & (1ULL << leftCaptureSq)) || (checkInfoStruct.checkers & (1ULL << leftCaptureSq)) || (checkInfoStruct.checkBlockSquares & (1ULL << leftCaptureSq)))
+                    if ((pinInfoStruct.pin_rays[pawnSq] & (1ULL << leftCaptureSq)) || (checkInfoStruct.checkers & (1ULL << targetPawnSq)) || (checkInfoStruct.checkBlockSquares & (1ULL << leftCaptureSq)))
                     {
                         Move move;
                         move.from = static_cast<Square>(pawnSq);
@@ -798,27 +799,28 @@ void ChessGame::generatePawnMoves(std::vector<Move> &moves) const
                         moves.push_back(move);
                     }
                 }
-                else if (pinInfoStruct.pinned_pieces & (1ULL << pawnSq))
+                else if (pinInfoStruct.pinned_pieces & (1ULL << pawnSq) && (pinInfoStruct.pin_rays[pawnSq] & (1ULL << leftCaptureSq)))
                 {
                     // If the pawn is pinned, it can only capture if the pin ray allows it
-                    if ((pinInfoStruct.pin_rays[pawnSq] & (1ULL << leftCaptureSq)))
-                    {
-                        Move move;
-                        move.from = static_cast<Square>(pawnSq);
-                        move.to = static_cast<Square>(leftCaptureSq);
-                        move.isCapture = true;
-                        move.isEnPassant = true;
-                        moves.push_back(move);
-                    }
-                }
-                else
-                {
                     Move move;
                     move.from = static_cast<Square>(pawnSq);
                     move.to = static_cast<Square>(leftCaptureSq);
                     move.isCapture = true;
                     move.isEnPassant = true;
                     moves.push_back(move);
+                }
+                else
+                {
+                    if (enPassantIsLegal(pawnSq, enPassantSq))
+                    {
+                        // If the en passant move is legal, add it
+                        Move move;
+                        move.from = static_cast<Square>(pawnSq);
+                        move.to = static_cast<Square>(enPassantSq);
+                        move.isCapture = true;
+                        move.isEnPassant = true;
+                        moves.push_back(move);
+                    }
                 }
             }
             if (pawnSq % 8 != 7 && rightCaptureSq == enPassantSq && ((whiteTurn && enPassantSq >= 40 && enPassantSq <= 47) || (!whiteTurn && enPassantSq >= 16 && enPassantSq <= 23)))
@@ -832,7 +834,7 @@ void ChessGame::generatePawnMoves(std::vector<Move> &moves) const
                     // If the king is in check, only allow moves that block the check or capture the checking piece
                     // And we also make sure that if the pawn is pinned, it can only capture if the pin ray allows it
 
-                    if ((pinInfoStruct.pin_rays[pawnSq] & (1ULL << rightCaptureSq)) || (checkInfoStruct.checkers & (1ULL << rightCaptureSq)) || (checkInfoStruct.checkBlockSquares & (1ULL << rightCaptureSq)))
+                    if ((pinInfoStruct.pin_rays[pawnSq] & (1ULL << rightCaptureSq)) || (checkInfoStruct.checkers & (1ULL << targetPawnSq)) || (checkInfoStruct.checkBlockSquares & (1ULL << rightCaptureSq)))
                     {
                         Move move;
                         move.from = static_cast<Square>(pawnSq);
@@ -842,21 +844,9 @@ void ChessGame::generatePawnMoves(std::vector<Move> &moves) const
                         moves.push_back(move);
                     }
                 }
-                else if (pinInfoStruct.pinned_pieces & (1ULL << pawnSq))
+                else if (pinInfoStruct.pinned_pieces & (1ULL << pawnSq) && (pinInfoStruct.pin_rays[pawnSq] & (1ULL << rightCaptureSq)))
                 {
                     // If the pawn is pinned, it can only capture if the pin ray allows it
-                    if ((pinInfoStruct.pin_rays[pawnSq] & (1ULL << rightCaptureSq)))
-                    {
-                        Move move;
-                        move.from = static_cast<Square>(pawnSq);
-                        move.to = static_cast<Square>(rightCaptureSq);
-                        move.isCapture = true;
-                        move.isEnPassant = true;
-                        moves.push_back(move);
-                    }
-                }
-                else
-                {
                     Move move;
                     move.from = static_cast<Square>(pawnSq);
                     move.to = static_cast<Square>(rightCaptureSq);
@@ -864,9 +854,40 @@ void ChessGame::generatePawnMoves(std::vector<Move> &moves) const
                     move.isEnPassant = true;
                     moves.push_back(move);
                 }
+                else
+                {
+                    if (enPassantIsLegal(pawnSq, enPassantSq))
+                    {
+                        // If the en passant move is legal, add it
+                        Move move;
+                        move.from = static_cast<Square>(pawnSq);
+                        move.to = static_cast<Square>(enPassantSq);
+                        move.isCapture = true;
+                        move.isEnPassant = true;
+                        moves.push_back(move);
+                    }
+                }
             }
         }
     }
+}
+
+bool ChessGame::enPassantIsLegal(int pawnSq, int enPassantSq) const
+{
+    // Check if the en passant move is legal
+
+    // Remove the target pawn from its square and then check if our pawn is pinned
+    int targetPawnSq = enPassantSq + (whiteTurn ? -8 : 8); // The square of the pawn that is being captured en passant
+    uint64_t targetPawnBB = (1ULL << targetPawnSq);
+    uint64_t enemyPiecesCopy = whiteTurn ? blackPieces : whitePieces;
+    enemyPiecesCopy &= ~targetPawnBB; // Remove the target pawn from the enemy pieces
+
+    // Recalculate pin information
+    PinInfo tempPinInfo = calculatePins(enemyPiecesCopy, whiteTurn);
+
+    bool isPinned = (tempPinInfo.pinned_pieces & (1ULL << pawnSq)) != 0;
+
+    return !isPinned;
 }
 
 void ChessGame::generateKnightMoves(std::vector<Move> &moves) const
@@ -1465,7 +1486,7 @@ void ChessGame::preworkPosition()
     // initializeRayAttacks();
 
     // Reset the board to the initial position
-    pinInfoStruct = calculatePins(occupiedBitboard, emptyBitboard, whiteTurn);
+    pinInfoStruct = calculatePins(whiteTurn ? blackPieces : whitePieces, whiteTurn);
     /*for (int i = 0; i < 64; ++i)
     {
         if (pinInfoStruct.pinned_pieces & (1ULL << i))
@@ -1501,7 +1522,7 @@ void ChessGame::preworkPosition()
     return;
 }
 
-PinInfo ChessGame::calculatePins(uint64_t our_pieces, uint64_t enemy_pieces, bool is_white)
+PinInfo ChessGame::calculatePins(uint64_t enemy_pieces, bool is_white) const
 {
     PinInfo pins = {};
 
@@ -1518,11 +1539,11 @@ PinInfo ChessGame::calculatePins(uint64_t our_pieces, uint64_t enemy_pieces, boo
         uint64_t ray;
         if (dir < 4)
         { // Positive Rays
-            ray = getPositiveRayAttacks(whiteTurn ? blackPieces : whitePieces, static_cast<Direction>(dir), king_square);
+            ray = getPositiveRayAttacks(enemy_pieces, static_cast<Direction>(dir), king_square);
         }
         else
         {
-            ray = getNegativeRayAttacks(whiteTurn ? blackPieces : whitePieces, static_cast<Direction>(dir), king_square);
+            ray = getNegativeRayAttacks(enemy_pieces, static_cast<Direction>(dir), king_square);
         }
 
         if (ray == 0)
@@ -1562,11 +1583,11 @@ PinInfo ChessGame::calculatePins(uint64_t our_pieces, uint64_t enemy_pieces, boo
         uint64_t ray;
         if (dir < 4)
         { // Positive Rays
-            ray = getPositiveRayAttacks(whiteTurn ? blackPieces : whitePieces, static_cast<Direction>(dir), king_square);
+            ray = getPositiveRayAttacks(enemy_pieces, static_cast<Direction>(dir), king_square);
         }
         else
         {
-            ray = getNegativeRayAttacks(whiteTurn ? blackPieces : whitePieces, static_cast<Direction>(dir), king_square);
+            ray = getNegativeRayAttacks(enemy_pieces, static_cast<Direction>(dir), king_square);
         }
 
         if (ray == 0)
