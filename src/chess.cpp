@@ -126,7 +126,7 @@ ChessGame::Move ChessGame::getMove(const ChessGame::Move &move) const
     // Check if move is in our moves vector
     for (const Move &m : movesVector)
     {
-        if ((m.to == move.to) && m.from == move.from && move.promotionPiece == move.promotionPiece) // Assuming you have an equals method in Move
+        if ((m.to == move.to) && m.from == move.from && m.promotionPiece == move.promotionPiece) // Assuming you have an equals method in Move
         {
             return m;
         }
@@ -195,6 +195,29 @@ void ChessGame::applyMove(const ChessGame::Move &move)
             pieceBitboards[static_cast<int>(capturedPiece) - 1] &= ~toBB;
         }
         currentState->capturedPiece = capturedPiece; // Store captured piece
+
+        if (capturedPiece == Piece::r)
+        {
+            if (move.to == Square::a1)
+            {
+                currentState->castlingRights &= 0b1011;
+            }
+            if (move.to == Square::h1)
+            {
+                currentState->castlingRights &= 0b0111;
+            }
+        }
+        else if (capturedPiece == Piece::R)
+        {
+            if (move.to == Square::a8)
+            {
+                currentState->castlingRights &= 0b1110;
+            }
+            if (move.to == Square::h8)
+            {
+                currentState->castlingRights &= 0b1101;
+            }
+        }
     }
 
     // Add piece to destination square
@@ -1254,7 +1277,7 @@ void ChessGame::generateCastlingMoves(std::vector<Move> &moves) const
     // Generate castling moves for the current turn
     if (whiteTurn)
     {
-        if (currentState->castlingRights & 0b1000) // White kingside castling
+        if (currentState->castlingRights & 0b1000 && (pieceBitboards[5] & (1ULL << static_cast<int>(Square::e1))) && (pieceBitboards[1] & (1ULL << static_cast<int>(Square::h1)))) // White kingside castling
         {
             if (!((occupiedBitboard & (1ULL << static_cast<int>(Square::f1))) || (occupiedBitboard & (1ULL << static_cast<int>(Square::g1)))))
             {
@@ -1270,7 +1293,7 @@ void ChessGame::generateCastlingMoves(std::vector<Move> &moves) const
                 }
             }
         }
-        if (currentState->castlingRights & 0b0100) // White queenside castling
+        if (currentState->castlingRights & 0b0100 && (pieceBitboards[5] & (1ULL << static_cast<int>(Square::e1))) && (pieceBitboards[1] & (1ULL << static_cast<int>(Square::a1)))) // White queenside castling
         {
             if (!((occupiedBitboard & (1ULL << static_cast<int>(Square::b1))) || (occupiedBitboard & (1ULL << static_cast<int>(Square::c1))) ||
                   (occupiedBitboard & (1ULL << static_cast<int>(Square::d1)))))
@@ -1288,7 +1311,7 @@ void ChessGame::generateCastlingMoves(std::vector<Move> &moves) const
     }
     else
     {
-        if (currentState->castlingRights & 0b0010) // Black kingside castling
+        if (currentState->castlingRights & 0b0010 && (pieceBitboards[11] & (1ULL << static_cast<int>(Square::e8))) && (pieceBitboards[7] & (1ULL << static_cast<int>(Square::h8)))) // Black kingside castling
         {
             if (!((occupiedBitboard & (1ULL << static_cast<int>(Square::f8))) || (occupiedBitboard & (1ULL << static_cast<int>(Square::g8)))))
             {
@@ -1305,7 +1328,7 @@ void ChessGame::generateCastlingMoves(std::vector<Move> &moves) const
             }
         }
     }
-    if (currentState->castlingRights & 0b0001) // Black queenside castling
+    if (currentState->castlingRights & 0b0001 && (pieceBitboards[11] & (1ULL << static_cast<int>(Square::e8))) && (pieceBitboards[7] & (1ULL << static_cast<int>(Square::a8)))) // Black queenside castling
     {
         if (!((occupiedBitboard & (1ULL << static_cast<int>(Square::b8))) || (occupiedBitboard & (1ULL << static_cast<int>(Square::c8))) ||
               (occupiedBitboard & (1ULL << static_cast<int>(Square::d8)))))
@@ -2171,6 +2194,5 @@ void ChessGame::undoMove(const ChessGame::Move &move)
     blackPieces = pieceBitboards[6] | pieceBitboards[7] | pieceBitboards[8] | pieceBitboards[9] | pieceBitboards[10] | pieceBitboards[11];
     occupiedBitboard = whitePieces | blackPieces;
     emptyBitboard = ~occupiedBitboard;
-
     return;
 }
