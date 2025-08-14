@@ -13,14 +13,18 @@ public:
     this->gamePtr = game; // Store the game state
   }
 
-  // Evaluate the current position (dummy implementation)
   int evaluatePosition() const override
   {
     // Make a simple evaluation based on material count
     int score = 0;
     if (this->gamePtr->isGameOver())
     {
-      return this->gamePtr->isWhiteWins() ? INT_MAX : INT_MIN; // Return max/min score based on winner
+      if (this->gamePtr->getGameResult() == 1)
+        return INT_MAX; // White wins
+      else if (this->gamePtr->getGameResult() == -1)
+        return INT_MIN; // Black wins
+      else
+        return 0; // Draw
     }
     for (int i = 0; i < 12; ++i) // Loop through all piece types
     {
