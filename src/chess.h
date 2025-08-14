@@ -196,6 +196,11 @@ public:
         return movesVector;
     }
 
+    int getGameResult() const
+    {
+        return gameResult;
+    }
+
 private:
     // TODO: Define your board representation here (e.g., array or vector)
     // For simplicity, we can use a 2D vector of small ints to represent the board
@@ -345,6 +350,8 @@ private:
     StateInfo *currentState = nullptr; // Pointer to the current state info
 
     bool enPassantIsLegal(int pawnSq, int enPassantSq) const;
+
+    int gameResult = 0; // 0 = Draw, 1 = White wins, -1 = Black wins; Given at game over
 };
 
 #endif // CHESS_H

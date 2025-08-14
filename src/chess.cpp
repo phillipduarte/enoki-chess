@@ -1706,7 +1706,16 @@ void ChessGame::preworkPosition()
     {
         gameOver = true; // No legal moves available, game over
         bitboardToBoardArray();
-        whiteWins = !whiteTurn; // If it's white's turn and no moves, black wins
+        if (checkInfoStruct.isInCheck)
+        {
+            // If the player whose turn it is is in check, it's checkmate
+            gameResult = whiteTurn ? -1 : 1; // If it's white's turn and no moves, black wins
+        }
+        else
+        {
+            // If not in check, it's stalemate
+            gameResult = 0; // Stalemate, no winner
+        }
         // std::cout << "Game over: No legal moves available." << std::endl;
     }
     currentState->checkInfo = checkInfoStruct;
