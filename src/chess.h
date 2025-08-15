@@ -201,6 +201,10 @@ public:
         return gameResult;
     }
 
+    void bitboardToBoardArray();
+
+    Piece getPieceAtSquareFromBB(Square square) const;
+
 private:
     // TODO: Define your board representation here (e.g., array or vector)
     // For simplicity, we can use a 2D vector of small ints to represent the board
@@ -336,10 +340,6 @@ private:
     void generateQueenMoves(std::vector<Move> &moves) const;
     void generateKingMoves(std::vector<Move> &moves) const;
     void generateCastlingMoves(std::vector<Move> &moves) const;
-
-    Piece getPieceAtSquareFromBB(Square square) const;
-
-    void bitboardToBoardArray();
 
     mutable uint64_t opponentAttacks; // Attacks that can specifically attack the king
 
