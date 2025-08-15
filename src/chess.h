@@ -201,8 +201,6 @@ public:
         return gameResult;
     }
 
-    void bitboardToBoardArray();
-
     Piece getPieceAtSquareFromBB(Square square) const;
 
 private:
@@ -350,6 +348,8 @@ private:
     StateInfo *currentState = nullptr; // Pointer to the current state info
 
     bool enPassantIsLegal(int pawnSq, int enPassantSq) const;
+
+    void bitboardToBoardArray();
 
     int gameResult = 0; // 0 = Draw, 1 = White wins, -1 = Black wins; Given at game over
 };
