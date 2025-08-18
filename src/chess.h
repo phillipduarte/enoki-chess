@@ -203,6 +203,16 @@ public:
 
     Piece getPieceAtSquareFromBB(Square square) const;
 
+    static std::string moveToString(const Move &move)
+    {
+        std::string moveStr = getSquareName(move.from) + getSquareName(move.to);
+        if (move.isPromotion)
+        {
+            moveStr += static_cast<char>(move.promotionPiece);
+        }
+        return moveStr;
+    }
+
 private:
     // TODO: Define your board representation here (e.g., array or vector)
     // For simplicity, we can use a 2D vector of small ints to represent the board
