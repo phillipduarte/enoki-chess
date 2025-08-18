@@ -34,7 +34,7 @@ int main(int argc, char *argv[])
     int playerColor = 0; // Default to white
     if (game_mode == 1)
     {
-        int playerColor = std::stoi(argv[2]);
+        playerColor = std::stoi(argv[2]);
         if (playerColor < 0 || playerColor > 1)
         {
             std::cerr << "Invalid color. Use 0 for white or 1 for black." << std::endl;
@@ -57,7 +57,7 @@ int main(int argc, char *argv[])
     }
 
     const std::string defaultFEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-    const std::string testingFEN = "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1";
+    const std::string testingFEN = "r3k2N/p1ppqpb1/bn2pn2/3P4/1p2P3/2N2Q2/PPPBBPpP/R3K2R b KQq - 0 1";
     const std::string mateInOneFEN = "1rb1k1nr/prpp1ppp/8/2b1pq2/8/8/P2PPPPP/KNBQ1BNR w KQkq - 0 1"; // Example FEN for a mate in one position
     const std::string pinBugFEN = "rnbqkbnr/pppp1ppp/8/4p3/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
     const std::string enPassantFEN = "rnbqkbnr/pppp1ppp/8/8/3Pp3/8/PPP1PPPP/RNBQKBNR w KQkq d6 0 1"; // Example FEN for en passant
@@ -71,7 +71,7 @@ int main(int argc, char *argv[])
         engine->initialize(&game);
     }
 
-    game.parseFEN(testingFEN); // Use the testing FEN for demonstration purposes
+    game.parseFEN(defaultFEN); // Use the testing FEN for demonstration purposes
     // game.printBoard(true);
     game.preworkPosition();
 
