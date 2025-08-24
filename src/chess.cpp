@@ -16,6 +16,7 @@ ChessGame::ChessGame() : whiteTurn(true)
     currentState = new StateInfo();
     currentState->castlingRights = 0b1111;                                // All castling rights available at the start
     parseFEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"); // Set to starting position
+    preworkPosition();
 }
 
 void ChessGame::printBoard(bool withBitboards)
