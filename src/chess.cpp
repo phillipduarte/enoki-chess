@@ -14,9 +14,9 @@ ChessGame::ChessGame() : whiteTurn(true)
     movesVector = std::vector<Move>();
     movesPlayed = std::vector<Move>();
     currentState = new StateInfo();
-    currentState->castlingRights = 0b1111;                                // All castling rights available at the start
-    parseFEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"); // Set to starting position
-    preworkPosition();
+    currentState->castlingRights = 0b1111; // All castling rights available at the start
+    // parseFEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"); // Set to starting position
+    // preworkPosition();
 }
 
 void ChessGame::printBoard(bool withBitboards)
@@ -458,6 +458,8 @@ void ChessGame::parseFEN(const std::string &fen)
         }
     }
     emptyBitboard = ~occupiedBitboard;
+
+    preworkPosition();
 }
 
 std::string ChessGame::generateFEN()
