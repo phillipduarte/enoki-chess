@@ -17,6 +17,11 @@ public:
   }
   ~EnokiEngine() override = default;
 
+  ChessGame *getPtr()
+  {
+    return this->gamePtr;
+  }
+
   // Initialize the engine with the chessboard state
   void initialize(ChessGame *game) override
   {
@@ -86,7 +91,6 @@ public:
       }
     }
     // Add additional evaluation criteria here, such as piece positioning, control of the center, etc.
-    this->gamePtr->bitboardToBoardArray(); // Convert bitboards to board array for evaluation
     for (int i = 0; i < 64; ++i)
     {
       Square square = static_cast<Square>(i);
@@ -193,7 +197,7 @@ public:
     {
       // White wants to maximize
       int bestScore = INT_MIN;
-      ChessGame::Move bestMove;
+      ChessGame::Move bestMove = moves[0]; // Set to first move in case no move is good (i.e. it's forced mate)
       for (const auto &move : moves)
       {
         this->gamePtr->applyMove(move);
@@ -212,7 +216,7 @@ public:
     {
       // Black wants to minimize
       int bestScore = INT_MAX;
-      ChessGame::Move bestMove;
+      ChessGame::Move bestMove = moves[0]; // Set to first move in case no move is good (i.e. it's forced mate)
       for (const auto &move : moves)
       {
         this->gamePtr->applyMove(move);
