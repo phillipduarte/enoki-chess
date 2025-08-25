@@ -208,7 +208,21 @@ public:
         std::string moveStr = getSquareName(move.from) + getSquareName(move.to);
         if (move.isPromotion)
         {
-            moveStr += static_cast<char>(move.promotionPiece);
+            switch (move.promotionPiece)
+            {
+            case Piece::Q:
+                moveStr += "q";
+                break;
+            case Piece::R:
+                moveStr += "r";
+                break;
+            case Piece::B:
+                moveStr += "b";
+                break;
+            case Piece::N:
+                moveStr += "n";
+                break;
+            }
         }
         return moveStr;
     }
